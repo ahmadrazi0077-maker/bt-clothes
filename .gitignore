@@ -1,0 +1,26 @@
+# .gitignore file create karo
+echo "/vendor/
+/node_modules/
+.env
+.env.*
+!.env.example
+/storage/*.key
+/storage/framework/
+/storage/logs/
+/storage/debugbar/
+/public/storage
+public/hot
+public/storage
+Homestead.json
+Homestead.yaml
+.auth
+.phpunit.result.cache
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.sqlite
+*.sqlite-journal
+.env.backup
+" > .gitignore
