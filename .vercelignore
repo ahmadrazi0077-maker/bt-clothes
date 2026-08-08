@@ -1,0 +1,15 @@
+/vendor
+/node_modules
+/storage
+/.env
+/.env.*
+!.env.example
+/tests
+/database
+/storage/*.key
+/.git
+/.github
+/.vscode
+/.idea
+*.log
+*.sqlite
