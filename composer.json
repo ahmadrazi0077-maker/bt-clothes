@@ -1,20 +1,14 @@
 {
-    "scripts": {
-        "post-autoload-dump": [
-            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
-        ],
-        "post-install-cmd": [
-            "@php artisan optimize"
-        ],
-        "post-update-cmd": [
-            "@php artisan optimize"
-        ],
-        "build": [
-            "@php artisan optimize",
-            "@php artisan storage:link",
-            "@php artisan view:cache",
-            "@php artisan config:cache"
-        ]
-    }
+  "scripts": {
+    "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+      "@php artisan package:discover --ansi"
+    ],
+    "post-install-cmd": [
+      "bash build.sh"
+    ],
+    "post-update-cmd": [
+      "bash build.sh"
+    ]
+  }
 }

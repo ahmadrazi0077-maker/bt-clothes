@@ -13,3 +13,7 @@
 /.idea
 *.log
 *.sqlite
+.DS_Store
+Thumbs.db
+/build
+/resources
