@@ -6,12 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'BT Clothes')</title>
     <meta name="description" content="@yield('description', 'Timeless clothing for the modern minimalist.')">
-    
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.13/dist/tailwind.min.css" rel="stylesheet">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
-    @vite(['resources/css/app.css'])
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
