@@ -1,14 +1,8 @@
 {
-  "scripts": {
-    "post-autoload-dump": [
-      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-      "@php artisan package:discover --ansi"
-    ],
-    "post-install-cmd": [
-      "bash build.sh"
-    ],
-    "post-update-cmd": [
-      "bash build.sh"
-    ]
-  }
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ]
+    }
 }
