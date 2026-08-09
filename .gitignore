@@ -24,3 +24,5 @@ Thumbs.db
 *.sqlite-journal
 .env.backup
 " > .gitignore
+.vercel
+.env*
