@@ -4,12 +4,6 @@
       "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
       "@php artisan package:discover --ansi"
     ],
-    "post-install-cmd": [
-      "@php artisan optimize"
-    ],
-    "post-update-cmd": [
-      "@php artisan optimize"
-    ],
     "build": [
       "@php artisan optimize",
       "@php artisan storage:link",
