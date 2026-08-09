@@ -83,3 +83,31 @@
 .loading {
     animation: pulse 1.5s ease-in-out infinite;
 }
+
+/* ✅ Force buttons to always show */
+/* Force all buttons to be visible and clickable */
+.product-card .wishlist-btn,
+.product-card .quick-view-btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 9999 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+}
+
+.product-card .wishlist-btn:hover,
+.product-card .quick-view-btn:hover {
+    background: #1a1a1a !important;
+    color: white !important;
+}
+
+/* Mobile fixes */
+@media (max-width: 640px) {
+    .product-card .wishlist-btn,
+    .product-card .quick-view-btn {
+        width: 34px !important;
+        height: 34px !important;
+        font-size: 14px !important;
+    }
+}

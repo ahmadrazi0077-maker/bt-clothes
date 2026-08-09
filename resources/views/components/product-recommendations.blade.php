@@ -1,35 +1,60 @@
+@props(['products' => []])
+
+@if(!empty($products) && count($products) > 0)
 <section class="py-16 md:py-20 bg-gray-50">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
-            <h2 class="text-3xl md:text-4xl font-light">You May <span class="font-bold">Also Like</span></h2>
-            <p class="text-gray-600 mt-3">Complete your look with these handpicked pieces.</p>
+            <span class="text-sm text-gray-500 uppercase tracking-wider">You May Also Like</span>
+            <h2 class="text-3xl md:text-4xl font-light mt-2">
+                Complete <span class="font-bold">Your Look</span>
+            </h2>
+            <p class="text-gray-600 mt-3">Handpicked pieces to complement your style.</p>
         </div>
         
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            @for ($i = 1; $i <= 4; $i++)
-                <div class="product-item bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2">
-                    <div class="relative overflow-hidden bg-gray-100">
-                        <div class="aspect-[4/5] flex items-center justify-center text-gray-400">
-                            Recommendation {{ $i }}
+            @foreach($products as $product)
+                <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group">
+                    <a href="/product/{{ $product['handle'] }}" class="block">
+                        <div class="relative overflow-hidden bg-gray-100">
+                            @if(isset($product['images']['edges'][0]['node']['url']))
+                                <img src="{{ $product['images']['edges'][0]['node']['url'] }}" 
+                                     alt="{{ $product['title'] }}"
+                                     class="w-full aspect-[4/5] object-cover transition-transform duration-600 group-hover:scale-105"
+                                     loading="lazy">
+                            @else
+                                <div class="w-full aspect-[4/5] flex items-center justify-center text-4xl text-gray-400">👕</div>
+                            @endif
+                            
+                            @php
+                                $price = $product['priceRange']['minVariantPrice']['amount'] ?? '0.00';
+                                $comparePrice = $product['compareAtPriceRange']['minVariantPrice']['amount'] ?? null;
+                            @endphp
+                            
+                            @if($comparePrice && $comparePrice > $price)
+                                <span class="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">SALE</span>
+                            @endif
                         </div>
-                        <div class="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition">
-                            <button class="wishlist-btn w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-lg hover:bg-gray-900 hover:text-white transition" data-product-id="rec-{{ $i }}" onclick="toggleWishlist('rec-{{ $i }}')">
-                                🤍
-                            </button>
-                            <button class="quick-view-btn w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-lg hover:bg-gray-900 hover:text-white transition" data-product-id="rec-{{ $i }}">
-                                👁️
-                            </button>
+                        
+                        <div class="p-4">
+                            @if(isset($product['vendor']))
+                                <div class="text-xs text-gray-500 uppercase tracking-wider">{{ $product['vendor'] }}</div>
+                            @endif
+                            
+                            <h3 class="font-semibold mt-1 text-sm line-clamp-2">
+                                {{ $product['title'] }}
+                            </h3>
+                            
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="font-bold text-lg">Rs. {{ number_format((float)$price, 0) }}</span>
+                                @if($comparePrice && $comparePrice > $price)
+                                    <span class="text-gray-400 line-through text-sm">Rs. {{ number_format((float)$comparePrice, 0) }}</span>
+                                @endif
+                            </div>
                         </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-semibold">Recommendation {{ $i }}</h3>
-                        <div class="text-lg font-bold mt-1">${{ 50 * $i + 20 }}</div>
-                        <button class="add-to-cart w-full mt-3 py-2 border-2 border-gray-900 rounded-lg font-semibold hover:bg-gray-900 hover:text-white transition flex items-center justify-center gap-2" data-product-id="rec-{{ $i }}">
-                            🛍️ Add to Cart
-                        </button>
-                    </div>
+                    </a>
                 </div>
-            @endfor
+            @endforeach
         </div>
     </div>
 </section>
+@endif

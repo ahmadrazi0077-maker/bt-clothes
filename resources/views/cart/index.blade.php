@@ -39,30 +39,31 @@
                                 $quantity = $node['quantity'] ?? 1;
                                 $lineTotal = $price * $quantity;
                                 $variantTitle = $merchandise['title'] ?? 'Default';
+                                $productTitle = $product['title'] ?? 'Product';
+                                $productHandle = $product['handle'] ?? '#';
                             @endphp
                             
                             <div class="cart-item grid grid-cols-1 md:grid-cols-12 gap-4 items-center px-4 md:px-6 py-4 border-b border-gray-100 last:border-0" 
-                                 data-line-id="{{ $node['id'] }}">
+                                 data-line-id="{{ $node['id'] }}"
+                                 data-price="{{ $price }}">
                                 
                                 <!-- Product Info -->
                                 <div class="md:col-span-6 flex items-center gap-4">
                                     <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
                                         @if($image)
-                                            <img src="{{ $image }}" alt="{{ $product['title'] ?? 'Product' }}" 
+                                            <img src="{{ $image }}" alt="{{ $productTitle }}" 
                                                  class="w-full h-full object-cover">
                                         @else
-                                            <div class="w-full h-full flex items-center justify-center text-2xl text-gray-400">
-                                                👕
-                                            </div>
+                                            <div class="w-full h-full flex items-center justify-center text-2xl text-gray-400">👕</div>
                                         @endif
                                     </div>
                                     <div>
                                         <h3 class="font-semibold">
-                                            <a href="/product/{{ $product['handle'] ?? '' }}" class="hover:text-gray-600 transition">
-                                                {{ $product['title'] ?? 'Product' }}
+                                            <a href="/product/{{ $productHandle }}" class="hover:text-gray-600 transition">
+                                                {{ $productTitle }}
                                             </a>
                                         </h3>
-                                        @if($variantTitle != 'Default Title')
+                                        @if($variantTitle != 'Default Title' && $variantTitle != 'Default')
                                             <p class="text-sm text-gray-500">Variant: {{ $variantTitle }}</p>
                                         @endif
                                         <button class="remove-item text-sm text-red-500 hover:text-red-700 transition mt-1" 
@@ -75,21 +76,25 @@
                                 <!-- Price -->
                                 <div class="md:col-span-2 text-center">
                                     <span class="md:hidden font-semibold text-sm">Price: </span>
-                                    ${{ number_format((float)$price, 2) }}
+                                    Rs. {{ number_format((float)$price, 0) }}
                                 </div>
                                 
-                                <!-- Quantity -->
+                                <!-- ✅ Quantity - Fixed -->
                                 <div class="md:col-span-2 flex justify-center">
-                                    <div class="flex items-center border border-gray-300 rounded-lg">
-                                        <button class="qty-decrease px-3 py-1 hover:bg-gray-100 transition" 
-                                                data-line-id="{{ $node['id'] }}">
-                                            -
+                                    <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                                        <button type="button" 
+                                                class="qty-btn px-3 py-1 hover:bg-gray-100 transition text-lg font-bold cursor-pointer bg-gray-50"
+                                                onclick="updateCartQty(this, -1)">
+                                            −
                                         </button>
-                                        <input type="number" value="{{ $quantity }}" min="1" max="10" 
-                                               class="qty-input w-12 text-center border-0 focus:ring-0 text-sm"
+                                        <input type="text" 
+                                               class="qty-input w-12 text-center border-0 focus:ring-0 text-sm bg-white"
+                                               value="{{ $quantity }}"
+                                               readonly
                                                data-line-id="{{ $node['id'] }}">
-                                        <button class="qty-increase px-3 py-1 hover:bg-gray-100 transition" 
-                                                data-line-id="{{ $node['id'] }}">
+                                        <button type="button" 
+                                                class="qty-btn px-3 py-1 hover:bg-gray-100 transition text-lg font-bold cursor-pointer bg-gray-50"
+                                                onclick="updateCartQty(this, 1)">
                                             +
                                         </button>
                                     </div>
@@ -97,7 +102,7 @@
                                 
                                 <!-- Total -->
                                 <div class="md:col-span-2 text-right font-bold item-total">
-                                    ${{ number_format((float)$lineTotal, 2) }}
+                                    Rs. {{ number_format((float)$lineTotal, 0) }}
                                 </div>
                             </div>
                         @endforeach
@@ -123,39 +128,19 @@
                     <div class="space-y-3 text-sm" id="cartSummary">
                         <div class="flex justify-between">
                             <span class="text-gray-600">Subtotal</span>
-                            <span id="subtotal">${{ number_format((float)($subtotal ?? 0), 2) }}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Shipping</span>
-                            <span class="text-green-600">Free</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Tax</span>
-                            <span id="tax">${{ number_format((float)($tax ?? 0), 2) }}</span>
+                            <span id="subtotal">Rs. {{ number_format((float)($subtotal ?? 0), 0) }}</span>
                         </div>
                         
-                        <!-- Discount Section -->
-                        <div class="border-t border-gray-200 pt-3 mt-3">
-                            <div class="flex gap-2">
-                                <input type="text" id="discountCode" placeholder="Promo code" 
-                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-900">
-                                <button id="applyDiscount" class="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 transition">
-                                    Apply
-                                </button>
-                            </div>
-                            <div id="discountMessage" class="text-xs mt-1 hidden"></div>
-                        </div>
-                        
-                        <!-- Total -->
                         <div class="border-t border-gray-200 pt-3 mt-3">
                             <div class="flex justify-between font-bold text-lg">
                                 <span>Total</span>
-                                <span id="cartTotal">${{ number_format((float)($total ?? 0), 2) }}</span>
+                                <span id="cartTotal">
+                                    Rs. {{ number_format((float)($subtotal ?? 0), 0) }}
+                                </span>
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Checkout Button -->
                     <a href="{{ route('checkout') }}" class="block w-full mt-6 bg-gray-900 text-white py-3 rounded-lg font-semibold text-center hover:bg-gray-700 transition">
                         Proceed to Checkout →
                     </a>
@@ -168,7 +153,7 @@
                     </div>
                     
                     <div class="mt-4 text-xs text-gray-500 text-center">
-                        🔒 Secure checkout powered by Shopify
+                        🔒 Shipping, tax and discounts calculated at checkout
                     </div>
                 </div>
             </div>
@@ -188,92 +173,99 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const cartContainer = document.getElementById('cartItemsContainer');
-    const subtotalEl = document.getElementById('subtotal');
-    const taxEl = document.getElementById('tax');
-    const totalEl = document.getElementById('cartTotal');
-    const itemCountEl = document.getElementById('cartItemCount');
-    const discountInput = document.getElementById('discountCode');
-    const applyDiscountBtn = document.getElementById('applyDiscount');
-    const discountMessage = document.getElementById('discountMessage');
-    const clearCartBtn = document.getElementById('clearCart');
+// ============================================
+// QUANTITY - FINAL FIX
+// ============================================
+
+function updateCartQty(btn, change) {
+    const row = btn.closest('.cart-item');
+    const input = row.querySelector('.qty-input');
+    const lineId = input.dataset.lineId || row.dataset.lineId;
     
-    // ===== Update Cart Summary =====
-    function updateCartSummary(cart) {
-        if (cart && cart.estimatedCost) {
-            const subtotal = cart.estimatedCost.subtotalAmount?.amount || 0;
-            const tax = cart.estimatedCost.totalTaxAmount?.amount || 0;
-            const total = cart.estimatedCost.totalAmount?.amount || 0;
-            const count = cart.totalQuantity || 0;
-            
-            if (subtotalEl) subtotalEl.textContent = '$' + parseFloat(subtotal).toFixed(2);
-            if (taxEl) taxEl.textContent = '$' + parseFloat(tax).toFixed(2);
-            if (totalEl) totalEl.textContent = '$' + parseFloat(total).toFixed(2);
-            if (itemCountEl) itemCountEl.textContent = count + ' items';
+    let quantity = parseInt(input.value) || 1;
+    quantity = quantity + change;
+    
+    if (quantity < 1) quantity = 1;
+    if (quantity > 10) quantity = 10;
+    
+    input.value = quantity;
+    
+    fetch('/cart/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            line_id: lineId,
+            quantity: quantity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateCartSummary();
+        } else {
+            alert(data.message || 'Error updating cart');
+            input.value = quantity - change;
         }
-    }
+    })
+    .catch(() => {
+        alert('Error updating cart');
+        input.value = quantity - change;
+    });
+}
+
+// ============================================
+// UPDATE CART SUMMARY
+// ============================================
+
+function updateCartSummary() {
+    let subtotal = 0;
+    let itemCount = 0;
     
-    // ===== Update Item Total =====
-    function updateItemTotal(row, price, quantity) {
-        const total = price * quantity;
+    document.querySelectorAll('.cart-item').forEach(row => {
+        const price = parseFloat(row.dataset.price) || 0;
+        const qty = parseInt(row.querySelector('.qty-input').value) || 1;
+        const total = price * qty;
+        
+        subtotal += total;
+        itemCount += qty;
+        
         const totalEl = row.querySelector('.item-total');
         if (totalEl) {
-            totalEl.textContent = '$' + total.toFixed(2);
+            totalEl.textContent = 'Rs. ' + total.toFixed(0);
         }
+    });
+    
+    const subtotalEl = document.getElementById('subtotal');
+    if (subtotalEl) {
+        subtotalEl.textContent = 'Rs. ' + subtotal.toFixed(0);
     }
     
-    // ===== Refresh Cart =====
-    function refreshCart() {
-        fetch('/cart/count')
-            .then(response => response.json())
-            .then(data => {
-                if (data.count !== undefined) {
-                    const cartCount = document.querySelector('.cart-count');
-                    if (cartCount) cartCount.textContent = data.count;
-                }
-            })
-            .catch(error => console.error('Error:', error));
+    const totalEl = document.getElementById('cartTotal');
+    if (totalEl) {
+        totalEl.textContent = 'Rs. ' + subtotal.toFixed(0);
     }
     
-    // ===== Update Cart API Call =====
-    function updateCart(lineId, quantity) {
-        fetch('/cart/update', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                line_id: lineId,
-                quantity: quantity
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateCartSummary(data.cart);
-                refreshCart();
-                
-                // Update item row
-                const row = document.querySelector(`.cart-item[data-line-id="${lineId}"]`);
-                if (row) {
-                    const input = row.querySelector('.qty-input');
-                    const price = parseFloat(row.querySelector('.md\\:col-span-2').textContent.replace('$', ''));
-                    updateItemTotal(row, price, quantity);
-                }
-            } else {
-                showToast(data.message || 'Error updating cart');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Error updating cart');
-        });
+    const itemCountEl = document.getElementById('cartItemCount');
+    if (itemCountEl) {
+        itemCountEl.textContent = itemCount + ' items';
     }
     
-    // ===== Remove Item =====
-    function removeItem(lineId) {
+    const cartCount = document.querySelector('.cart-count');
+    if (cartCount) {
+        cartCount.textContent = itemCount;
+    }
+}
+
+// ============================================
+// REMOVE ITEM
+// ============================================
+
+document.querySelectorAll('.remove-item').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const lineId = this.dataset.lineId;
         if (!confirm('Remove this item from cart?')) return;
         
         fetch('/cart/remove', {
@@ -291,126 +283,50 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 const row = document.querySelector(`.cart-item[data-line-id="${lineId}"]`);
                 if (row) row.remove();
-                updateCartSummary(data.cart);
-                refreshCart();
-                showToast('Item removed from cart');
-                
-                // Check if cart is empty
+                updateCartSummary();
                 if (data.itemCount === 0) {
                     location.reload();
                 }
             } else {
-                showToast(data.message || 'Error removing item');
+                alert(data.message || 'Error removing item');
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showToast('Error removing item');
+        .catch(() => {
+            alert('Error removing item');
         });
-    }
+    });
+});
+
+// ============================================
+// CLEAR CART
+// ============================================
+
+document.getElementById('clearCart').addEventListener('click', function() {
+    if (!confirm('Clear all items from cart?')) return;
     
-    // ===== Apply Discount =====
-    applyDiscountBtn?.addEventListener('click', function() {
-        const code = discountInput.value.trim();
-        if (!code) {
-            discountMessage.textContent = 'Please enter a discount code';
-            discountMessage.className = 'text-xs mt-1 text-red-500';
-            discountMessage.classList.remove('hidden');
-            return;
+    fetch('/cart/clear', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
         }
-        
-        fetch('/cart/discount', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                discount_code: code
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                discountMessage.textContent = '✅ ' + data.message;
-                discountMessage.className = 'text-xs mt-1 text-green-500';
-                discountMessage.classList.remove('hidden');
-                updateCartSummary(data.cart);
-            } else {
-                discountMessage.textContent = '❌ ' + data.message;
-                discountMessage.className = 'text-xs mt-1 text-red-500';
-                discountMessage.classList.remove('hidden');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            discountMessage.textContent = 'Error applying discount';
-            discountMessage.className = 'text-xs mt-1 text-red-500';
-            discountMessage.classList.remove('hidden');
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(() => {
+            alert('Error clearing cart');
         });
-    });
-    
-    // ===== Clear Cart =====
-    clearCartBtn?.addEventListener('click', function() {
-        if (!confirm('Clear all items from cart?')) return;
-        
-        fetch('/cart/clear', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    });
-    
-    // ===== Quantity Controls =====
-    document.querySelectorAll('.qty-decrease, .qty-increase').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const row = this.closest('.cart-item');
-            const input = row.querySelector('.qty-input');
-            const lineId = input.dataset.lineId || row.dataset.lineId;
-            let quantity = parseInt(input.value);
-            
-            if (this.classList.contains('qty-decrease')) {
-                if (quantity > 1) quantity--;
-            } else {
-                if (quantity < 10) quantity++;
-            }
-            
-            input.value = quantity;
-            updateCart(lineId, quantity);
-        });
-    });
-    
-    // ===== Quantity Input Change =====
-    document.querySelectorAll('.qty-input').forEach(input => {
-        input.addEventListener('change', function() {
-            let quantity = parseInt(this.value) || 1;
-            if (quantity < 1) quantity = 1;
-            if (quantity > 10) quantity = 10;
-            this.value = quantity;
-            
-            const lineId = this.dataset.lineId || this.closest('.cart-item').dataset.lineId;
-            updateCart(lineId, quantity);
-        });
-    });
-    
-    // ===== Remove Item Button =====
-    document.querySelectorAll('.remove-item').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const lineId = this.dataset.lineId;
-            removeItem(lineId);
-        });
-    });
-    
-    // ===== Initial Refresh =====
-    refreshCart();
+});
+
+// ============================================
+// INIT
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateCartSummary();
 });
 </script>
 @endpush

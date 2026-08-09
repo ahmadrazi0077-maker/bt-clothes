@@ -86,6 +86,7 @@
             
             <!-- Header Actions -->
             <div class="flex items-center gap-3 md:gap-4">
+
                 <button id="searchToggle" class="text-xl hover:text-gray-600 transition" aria-label="Search">
                     🔍
                 </button>
@@ -97,6 +98,7 @@
         <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full"></span>
     @endif
 </a>
+<!-- In header actions -->
 
                 <a href="/cart" class="text-xl hover:text-gray-600 transition relative" id="cartLink" aria-label="Cart">
                     🛒
@@ -193,5 +195,23 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Error:', error));
 });
+// Update wishlist count
+function updateWishlistCount() {
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    const countEl = document.querySelector('.wishlist-count');
+    if (countEl) {
+        countEl.textContent = wishlist.length;
+    }
+}
+
+// Call on page load and when wishlist changes
+document.addEventListener('DOMContentLoaded', updateWishlistCount);
+
+// Override toggleWishlist to update count
+const originalToggle = window.toggleWishlist;
+window.toggleWishlist = function(productId) {
+    originalToggle(productId);
+    updateWishlistCount();
+};
 </script>
 @endpush

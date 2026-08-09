@@ -44,7 +44,15 @@ Route::post('/cart/clear', [ShopifyController::class, 'clearCart'])->name('cart.
 Route::post('/cart/discount', [ShopifyController::class, 'applyDiscount'])->name('cart.discount');
 Route::get('/cart/count', [ShopifyController::class, 'cartCount'])->name('cart.count');
 
+// Wishlist
+
+
+
+
 // ============================================
+// API ROUTES
+// ============================================
+
 // CHECKOUT
 // ============================================
 
@@ -132,6 +140,19 @@ Route::post('/contact', [ContactController::class, 'submit'])->name('contact.sub
 
 // Admin - View contact messages
 Route::get('/admin/contact', [ContactController::class, 'adminIndex'])->name('admin.contact');
+
+Route::get('/api/product/{id}', [ApiController::class, 'getProduct']);
+
+use App\Http\Controllers\ApiController;
+
+// ============================================
+// API ROUTES
+// ============================================
+
+Route::get('/api/product/{id}', [ApiController::class, 'getProduct']);
+Route::get('/api/recommendations/{productId}', [ApiController::class, 'getRecommendations']);
+// Product route
+Route::get('/product/{handle}', [ShopifyController::class, 'product'])->name('product.show');
 // ============================================
 // PAGES
 // ============================================

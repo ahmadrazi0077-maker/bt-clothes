@@ -1,137 +1,438 @@
 @props(['product'])
 
 @php
-    // Extract product data safely
-    $productId = $product['id'] ?? 'mock_' . rand(1, 100);
-    $productTitle = $product['title'] ?? 'Product';
-    $productHandle = $product['handle'] ?? 'product-' . rand(1, 100);
-    $productVendor = $product['vendor'] ?? 'Sanctuary Flow';
-    $productAvailable = $product['availableForSale'] ?? true;
-    
-    // Get product price
+
+    /*
+    |--------------------------------------------------------------------------
+    | BASIC PRODUCT DATA
+    |--------------------------------------------------------------------------
+    */
+
+    $productId = $product['id']
+        ?? 'mock_' . uniqid();
+
+    $productTitle = $product['title']
+        ?? 'Product';
+
+    $productHandle = $product['handle']
+        ?? 'product-' . uniqid();
+
+    $productVendor = $product['vendor']
+        ?? 'BT Clothes';
+
+    $productAvailable = $product['availableForSale']
+        ?? true;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | PRICE
+    |--------------------------------------------------------------------------
+    */
+
     $price = '0.00';
-    if (isset($product['priceRange']['minVariantPrice']['amount'])) {
-        $price = $product['priceRange']['minVariantPrice']['amount'];
-    } elseif (isset($product['price'])) {
+
+    if (
+        isset($product['priceRange']['minVariantPrice']['amount'])
+    ) {
+        $price =
+            $product['priceRange']['minVariantPrice']['amount'];
+
+    } elseif (
+        isset($product['price'])
+    ) {
         $price = $product['price'];
-    } elseif (isset($product['variants'][0]['price'])) {
-        $price = $product['variants'][0]['price'];
     }
-    
-    // Get compare at price
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | COMPARE PRICE
+    |--------------------------------------------------------------------------
+    */
+
     $comparePrice = null;
-    if (isset($product['compareAtPriceRange']['minVariantPrice']['amount'])) {
-        $comparePrice = $product['compareAtPriceRange']['minVariantPrice']['amount'];
-    } elseif (isset($product['compare_at_price'])) {
-        $comparePrice = $product['compare_at_price'];
+
+    if (
+        isset($product['compareAtPriceRange']['minVariantPrice']['amount'])
+    ) {
+        $comparePrice =
+            $product['compareAtPriceRange']['minVariantPrice']['amount'];
+
+    } elseif (
+        isset($product['compare_at_price'])
+    ) {
+        $comparePrice =
+            $product['compare_at_price'];
     }
-    
-    // Get product image
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | PRODUCT IMAGE
+    |--------------------------------------------------------------------------
+    */
+
     $productImage = null;
-    if (isset($product['images']['edges'][0]['node']['url'])) {
-        $productImage = $product['images']['edges'][0]['node']['url'];
-    } elseif (isset($product['images'][0]['src'])) {
-        $productImage = $product['images'][0]['src'];
-    } elseif (isset($product['image']['url'])) {
-        $productImage = $product['image']['url'];
+
+    if (
+        isset($product['images']['edges'][0]['node']['url'])
+    ) {
+        $productImage =
+            $product['images']['edges'][0]['node']['url'];
+
+    } elseif (
+        isset($product['images'][0]['src'])
+    ) {
+        $productImage =
+            $product['images'][0]['src'];
+
+    } elseif (
+        isset($product['image']['url'])
+    ) {
+        $productImage =
+            $product['image']['url'];
     }
-    
-    // Get variant ID
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VARIANTS
+    |--------------------------------------------------------------------------
+    |
+    | Convert Shopify edges format into simple array.
+    |
+    */
+
+    $variants = [];
+
+    if (
+        isset($product['variants']['edges'])
+        && is_array($product['variants']['edges'])
+    ) {
+
+        foreach ($product['variants']['edges'] as $edge) {
+
+            if (isset($edge['node'])) {
+
+                $variants[] = $edge['node'];
+
+            }
+
+        }
+
+    } elseif (
+        isset($product['variants'])
+        && is_array($product['variants'])
+    ) {
+
+        $variants = $product['variants'];
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VARIANT LOGIC
+    |--------------------------------------------------------------------------
+    */
+
+    $variantCount = count($variants);
+
+    $hasVariants = $variantCount > 1;
+
     $variantId = null;
-    if (isset($product['variants']['edges'][0]['node']['id'])) {
-        $variantId = $product['variants']['edges'][0]['node']['id'];
-    } elseif (isset($product['variants'][0]['id'])) {
-        $variantId = $product['variants'][0]['id'];
+
+    if ($variantCount === 1) {
+
+        $variantId =
+            $variants[0]['id']
+            ?? $variants[0]['variantId']
+            ?? null;
+
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DISCOUNT
+    |--------------------------------------------------------------------------
+    */
+
+    $discountPercent = null;
+
+    if (
+        $comparePrice
+        && (float) $comparePrice > (float) $price
+    ) {
+
+        $saved =
+            (float) $comparePrice - (float) $price;
+
+        $discountPercent =
+            round(
+                ($saved / (float) $comparePrice) * 100
+            );
+    }
+
 @endphp
 
-<div class="product-item bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group">
-    <div class="relative overflow-hidden bg-gray-100">
-        @if($productImage)
-            <img 
-                src="{{ $productImage }}" 
-                alt="{{ $productTitle }}"
-                class="w-full aspect-[4/5] object-cover transition-transform duration-600 group-hover:scale-105"
-                loading="lazy"
-                width="400"
-                height="500"
-            >
-        @else
-            <div class="w-full aspect-[4/5] flex items-center justify-center text-gray-400 text-sm">
-                <div class="text-center">
-                    <div class="text-4xl mb-2">👕</div>
-                    No Image
+
+<article
+    class="group relative"
+    data-product-id="{{ $productId }}"
+>
+
+
+    {{-- ========================================================= --}}
+    {{-- PRODUCT IMAGE --}}
+    {{-- ========================================================= --}}
+
+    <div class="relative overflow-hidden bg-gray-100 rounded-xl">
+
+        <a
+            href="/product/{{ $productHandle }}"
+            aria-label="View {{ $productTitle }}"
+        >
+
+            @if($productImage)
+
+                <img
+                    src="{{ $productImage }}"
+                    alt="{{ $productTitle }}"
+                    class="w-full aspect-[4/5] object-cover transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                    width="400"
+                    height="500"
+                >
+
+            @else
+
+                <div
+                    class="w-full aspect-[4/5] flex items-center justify-center text-gray-400 text-4xl"
+                >
+                    👕
                 </div>
-            </div>
-        @endif
-        
-        <div class="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <button class="wishlist-btn w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-lg hover:bg-gray-900 hover:text-white transition" 
-                    data-product-id="{{ $productId }}" 
-                    onclick="toggleWishlist('{{ $productId }}')">
-                🤍
-            </button>
-            <button class="quick-view-btn w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-lg hover:bg-gray-900 hover:text-white transition" 
-                    data-product-id="{{ $productId }}">
-                👁️
-            </button>
-        </div>
-        
-        @if($comparePrice && $comparePrice > $price)
-            <span class="absolute top-3 left-3 bg-red-500 text-white text-xs px-3 py-1 rounded-full font-bold uppercase">
-                Sale
+
+            @endif
+
+        </a>
+
+
+        {{-- SALE BADGE --}}
+
+        @if($discountPercent)
+
+            <span
+                class="absolute top-3 left-3 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white"
+            >
+                -{{ $discountPercent }}%
             </span>
+
         @endif
-        
+
+
+        {{-- SOLD OUT OVERLAY --}}
+
         @if(!$productAvailable)
-            <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span class="text-white font-bold text-lg px-4 py-2 bg-black/70 rounded-lg">
+
+            <div
+                class="absolute inset-0 z-10 flex items-center justify-center bg-black/50"
+            >
+
+                <span
+                    class="rounded-lg bg-black/80 px-4 py-2 text-lg font-bold text-white"
+                >
                     Sold Out
                 </span>
+
             </div>
+
         @endif
+
     </div>
-    
+
+
+
+    {{-- ========================================================= --}}
+    {{-- PRODUCT INFORMATION --}}
+    {{-- ========================================================= --}}
+
     <div class="p-4">
+
+
+        {{-- Vendor --}}
+
         @if($productVendor)
-            <div class="text-xs text-gray-500 uppercase tracking-wider">{{ $productVendor }}</div>
+
+            <div
+                class="text-xs uppercase tracking-wider text-gray-500"
+            >
+                {{ $productVendor }}
+            </div>
+
         @endif
-        
-        <h3 class="font-semibold mt-1">
-            <a href="/product/{{ $productHandle }}" class="hover:text-gray-600 transition line-clamp-2">
+
+
+        {{-- Title --}}
+
+        <h3 class="mt-1 text-sm font-semibold md:text-base">
+
+            <a
+                href="/product/{{ $productHandle }}"
+                class="line-clamp-2 transition hover:text-gray-600"
+            >
                 {{ $productTitle }}
             </a>
+
         </h3>
-        
-        <div class="flex items-center gap-2 mt-2">
-            <span class="font-bold text-lg">
-                ${{ number_format((float)$price, 2) }}
+
+
+        {{-- Price --}}
+
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+
+            <span class="text-lg font-bold">
+
+                Rs.
+                {{ number_format((float) $price, 0) }}
+
             </span>
-            @if($comparePrice && $comparePrice > $price)
-                <span class="text-gray-400 line-through text-sm">
-                    ${{ number_format((float)$comparePrice, 2) }}
+
+
+            @if(
+                $comparePrice
+                && (float) $comparePrice > (float) $price
+            )
+
+                <span
+                    class="text-sm text-gray-400 line-through"
+                >
+                    Rs.
+                    {{ number_format((float) $comparePrice, 0) }}
                 </span>
-                @php
-                    $saved = (float)$comparePrice - (float)$price;
-                    $percent = round(($saved / (float)$comparePrice) * 100);
-                @endphp
-                <span class="text-xs text-green-600 font-semibold">
-                    -{{ $percent }}%
-                </span>
+
             @endif
+
         </div>
-        
-        <button class="add-to-cart w-full mt-3 py-2 border-2 border-gray-900 rounded-lg font-semibold hover:bg-gray-900 hover:text-white transition flex items-center justify-center gap-2
-                @if(!$productAvailable) opacity-50 cursor-not-allowed @endif"
-                data-product-id="{{ $productId }}"
-                data-variant-id="{{ $variantId }}"
-                @if(!$productAvailable) disabled @endif>
-            🛍️ 
-            @if($productAvailable)
-                Add to Cart
-            @else
+
+
+
+        {{-- ========================================================= --}}
+        {{-- ACTION BUTTON --}}
+        {{-- ========================================================= --}}
+
+        @if(!$productAvailable)
+
+
+            {{-- SOLD OUT --}}
+
+            <button
+                type="button"
+                disabled
+                class="mt-3 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border-2 border-gray-300 py-2.5 text-sm font-semibold text-gray-400"
+            >
+
                 Sold Out
-            @endif
-        </button>
+
+            </button>
+
+
+        @elseif($hasVariants)
+
+
+            {{-- ================================================= --}}
+            {{-- MULTIPLE VARIANTS --}}
+            {{-- ================================================= --}}
+            {{-- NEVER ADD DIRECTLY TO CART --}}
+            {{-- GO TO PRODUCT PAGE --}}
+            {{-- ================================================= --}}
+
+            <a
+                href="/product/{{ $productHandle }}"
+                class="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700"
+            >
+
+                {{-- Eye / Options Icon --}}
+
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                </svg>
+
+                Select Options
+
+            </a>
+
+
+        @elseif($variantId)
+
+
+            {{-- ================================================= --}}
+            {{-- SINGLE VARIANT --}}
+            {{-- ================================================= --}}
+            {{-- SAFE TO ADD DIRECTLY --}}
+            {{-- ================================================= --}}
+
+            <button
+                type="button"
+                class="add-to-cart-btn mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700"
+                data-variant-id="{{ $variantId }}"
+                onclick="addToCart(this)"
+            >
+
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                </svg>
+
+                Add to Cart
+
+            </button>
+
+
+        @else
+
+
+            {{-- ================================================= --}}
+            {{-- NO VARIANT DATA --}}
+            {{-- ================================================= --}}
+
+            <a
+                href="/product/{{ $productHandle }}"
+                class="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700"
+            >
+
+                View Product
+
+            </a>
+
+        @endif
+
     </div>
-</div>
+
+</article>

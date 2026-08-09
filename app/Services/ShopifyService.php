@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class ShopifyService
 {
@@ -19,6 +19,13 @@ class ShopifyService
         $this->accessToken = config('shopify.access_token');
         $this->storefrontToken = config('shopify.storefront_token');
         $this->apiVersion = config('shopify.api_version', '2024-07');
+        
+        if (empty($this->store)) {
+            Log::error('Shopify store URL is missing in .env');
+        }
+        if (empty($this->storefrontToken)) {
+            Log::error('Shopify storefront token is missing in .env');
+        }
     }
     
     protected function getStorefrontHeaders()
@@ -54,7 +61,7 @@ class ShopifyService
                 return $data['data'] ?? null;
             }
             
-            Log::error('GraphQL API Error: ' . $response->status());
+            Log::error('GraphQL API Error: ' . $response->status() . ' - ' . $response->body());
             return null;
         } catch (\Exception $e) {
             Log::error('GraphQL Exception: ' . $e->getMessage());
@@ -63,12 +70,354 @@ class ShopifyService
     }
     
     // ============================================
-    // ✅ CART METHODS - ADD THESE
+    // PRODUCT METHODS
     // ============================================
     
-    /**
-     * Create a new cart
-     */
+   public function getProductsGraphQL($limit = 12)
+{
+    $query = '
+    query GetProducts($first: Int!) {
+        products(first: $first) {
+            edges {
+                node {
+                    id
+                    title
+                    handle
+                    description
+                    availableForSale
+
+                    priceRange {
+                        minVariantPrice {
+                            amount
+                            currencyCode
+                        }
+                    }
+
+                    compareAtPriceRange {
+                        minVariantPrice {
+                            amount
+                            currencyCode
+                        }
+                    }
+
+                    images(first: 2) {
+                        edges {
+                            node {
+                                url
+                                altText
+                                width
+                                height
+                            }
+                        }
+                    }
+
+                    variants(first: 100) {
+                        edges {
+                            node {
+                                id
+                                title
+                                price {
+                                    amount
+                                    currencyCode
+                                }
+                                availableForSale
+
+                                selectedOptions {
+                                    name
+                                    value
+                                }
+                            }
+                        }
+                    }
+
+                    tags
+                    vendor
+                }
+            }
+        }
+    }
+    ';
+
+    $result = $this->graphqlQuery(
+        $query,
+        ['first' => $limit]
+    );
+
+    if (
+        $result &&
+        isset($result['products']['edges'])
+    ) {
+        return array_map(
+            function ($edge) {
+                return $edge['node'];
+            },
+            $result['products']['edges']
+        );
+    }
+
+    return $this->getMockProducts($limit);
+}
+    public function getProductByHandle($handle)
+    {
+        $query = '
+            query GetProduct($handle: String!) {
+                productByHandle(handle: $handle) {
+                    id
+                    title
+                    handle
+                    description
+                    descriptionHtml
+                    availableForSale
+                    priceRange {
+                        minVariantPrice {
+                            amount
+                            currencyCode
+                        }
+                    }
+                    compareAtPriceRange {
+                        minVariantPrice {
+                            amount
+                            currencyCode
+                        }
+                    }
+                    images(first: 5) {
+                        edges {
+                            node {
+                                url
+                                altText
+                            }
+                        }
+                    }
+                    variants(first: 10) {
+                        edges {
+                            node {
+                                id
+                                title
+                                price {
+                                    amount
+                                    currencyCode
+                                }
+                                availableForSale
+                                selectedOptions {
+                                    name
+                                    value
+                                }
+                            }
+                        }
+                    }
+                    options {
+                        name
+                        values
+                    }
+                    tags
+                    vendor
+                }
+            }
+        ';
+        
+        $result = $this->graphqlQuery($query, ['handle' => $handle]);
+        
+        if ($result && isset($result['productByHandle'])) {
+            return $result['productByHandle'];
+        }
+        
+        return null;
+    }
+    
+   /**
+ * Get Product by ID
+ */
+public function getProductById($id)
+{
+    // Clean the ID if it has the full URI format
+    $cleanId = str_replace('gid://shopify/Product/', '', $id);
+    $cleanId = str_replace('gid://shopify/ProductVariant/', '', $cleanId);
+    
+    $query = '
+        query GetProductById($id: ID!) {
+            node(id: $id) {
+                ... on Product {
+                    id
+                    title
+                    handle
+                    description
+                    descriptionHtml
+                    availableForSale
+                    priceRange {
+                        minVariantPrice {
+                            amount
+                            currencyCode
+                        }
+                    }
+                    compareAtPriceRange {
+                        minVariantPrice {
+                            amount
+                            currencyCode
+                        }
+                    }
+                    images(first: 5) {
+                        edges {
+                            node {
+                                url
+                                altText
+                                width
+                                height
+                            }
+                        }
+                    }
+                    variants(first: 10) {
+                        edges {
+                            node {
+                                id
+                                title
+                                price {
+                                    amount
+                                    currencyCode
+                                }
+                                availableForSale
+                                selectedOptions {
+                                    name
+                                    value
+                                }
+                            }
+                        }
+                    }
+                    options {
+                        name
+                        values
+                    }
+                    tags
+                    vendor
+                }
+            }
+        }
+    ';
+    
+    // Try with original ID first
+    $result = $this->graphqlQuery($query, ['id' => $id]);
+    
+    // If not found, try with clean ID
+    if (!$result || !isset($result['node'])) {
+        $result = $this->graphqlQuery($query, ['id' => $cleanId]);
+    }
+    
+    if ($result && isset($result['node'])) {
+        return $result['node'];
+    }
+    
+    return null;
+}
+
+/**
+ * Get Product by Handle
+ */
+
+    
+    public function getProductRecommendations($productId)
+    {
+        $query = '
+            query GetRecommendations($productId: ID!) {
+                productRecommendations(productId: $productId) {
+                    id
+                    title
+                    handle
+                    priceRange {
+                        minVariantPrice {
+                            amount
+                            currencyCode
+                        }
+                    }
+                    images(first: 1) {
+                        edges {
+                            node {
+                                url
+                                altText
+                            }
+                        }
+                    }
+                }
+            }
+        ';
+        
+        $result = $this->graphqlQuery($query, ['productId' => $productId]);
+        
+        if ($result && isset($result['productRecommendations'])) {
+            return $result['productRecommendations'];
+        }
+        
+        return $this->getMockProducts(4);
+    }
+    
+    // ============================================
+    // COLLECTION METHODS
+    // ============================================
+    
+    public function getCollectionsWithCount($limit = 10)
+    {
+        Cache::forget('shopify_collections');
+        
+        $query = '
+            query GetCollections($first: Int!) {
+                collections(first: $first) {
+                    edges {
+                        node {
+                            id
+                            title
+                            handle
+                            image {
+                                url
+                                altText
+                            }
+                            products(first: 250) {
+                                edges {
+                                    node {
+                                        id
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ';
+        
+        $result = $this->graphqlQuery($query, ['first' => $limit]);
+        
+        if ($result && isset($result['collections']['edges'])) {
+            $collections = [];
+            foreach ($result['collections']['edges'] as $edge) {
+                $node = $edge['node'];
+                $count = 0;
+                if (isset($node['products']['edges'])) {
+                    $count = count($node['products']['edges']);
+                }
+                
+                $collections[] = [
+                    'id' => $node['id'],
+                    'name' => $node['title'],
+                    'title' => $node['title'],
+                    'handle' => $node['handle'],
+                    'description' => '',
+                    'image' => $node['image']['url'] ?? null,
+                    'imageAlt' => $node['image']['altText'] ?? $node['title'],
+                    'count' => $count,
+                    'productCount' => $count,
+                    'icon' => $this->getCategoryIcon($node['title']),
+                    'color' => $this->getCategoryColor($node['title'])
+                ];
+            }
+            
+            Cache::put('shopify_collections', $collections, 3600);
+            return $collections;
+        }
+        
+        return [];
+    }
+    
+    // ============================================
+    // CART METHODS
+    // ============================================
+    
     public function createCart($lineItems = [])
     {
         $query = '
@@ -153,9 +502,6 @@ class ShopifyService
         return null;
     }
     
-    /**
-     * Get cart by ID
-     */
     public function getCart($cartId)
     {
         $query = '
@@ -243,9 +589,6 @@ class ShopifyService
         return null;
     }
     
-    /**
-     * Add items to cart
-     */
     public function addToCart($cartId, $lineItems)
     {
         $query = '
@@ -319,9 +662,6 @@ class ShopifyService
         return null;
     }
     
-    /**
-     * Update cart line quantity
-     */
     public function updateCartLine($cartId, $lineId, $quantity)
     {
         $query = '
@@ -386,9 +726,6 @@ class ShopifyService
         return null;
     }
     
-    /**
-     * Remove line from cart
-     */
     public function removeCartLine($cartId, $lineIds)
     {
         $query = '
@@ -448,9 +785,6 @@ class ShopifyService
         return null;
     }
     
-    /**
-     * Apply discount code
-     */
     public function addDiscount($cartId, $discountCode)
     {
         $query = '
@@ -496,465 +830,52 @@ class ShopifyService
     }
     
     // ============================================
-    // PRODUCT METHODS
+    // MOCK DATA
     // ============================================
     
-    public function getProductsGraphQL($limit = 12)
+    protected function getMockProducts($limit = 12)
     {
-        $query = '
-            query GetProducts($first: Int!) {
-                products(first: $first) {
-                    edges {
-                        node {
-                            id
-                            title
-                            handle
-                            description
-                            availableForSale
-                            priceRange {
-                                minVariantPrice {
-                                    amount
-                                    currencyCode
-                                }
-                            }
-                            compareAtPriceRange {
-                                minVariantPrice {
-                                    amount
-                                    currencyCode
-                                }
-                            }
-                            images(first: 1) {
-                                edges {
-                                    node {
-                                        url
-                                        altText
-                                    }
-                                }
-                            }
-                            variants(first: 1) {
-                                edges {
-                                    node {
-                                        id
-                                        title
-                                        price {
-                                            amount
-                                            currencyCode
-                                        }
-                                        availableForSale
-                                    }
-                                }
-                            }
-                            tags
-                            vendor
-                        }
-                    }
-                }
-            }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['first' => $limit]);
-        
-        if ($result && isset($result['products']['edges'])) {
-            return array_map(function($edge) {
-                return $edge['node'];
-            }, $result['products']['edges']);
-        }
-        
-        return [];
-    }
-    
-    public function getProductByHandle($handle)
-    {
-        $query = '
-            query GetProduct($handle: String!) {
-                productByHandle(handle: $handle) {
-                    id
-                    title
-                    handle
-                    description
-                    descriptionHtml
-                    availableForSale
-                    priceRange {
-                        minVariantPrice {
-                            amount
-                            currencyCode
-                        }
-                    }
-                    compareAtPriceRange {
-                        minVariantPrice {
-                            amount
-                            currencyCode
-                        }
-                    }
-                    images(first: 5) {
-                        edges {
-                            node {
-                                url
-                                altText
-                            }
-                        }
-                    }
-                    variants(first: 10) {
-                        edges {
-                            node {
-                                id
-                                title
-                                price {
-                                    amount
-                                    currencyCode
-                                }
-                                availableForSale
-                                selectedOptions {
-                                    name
-                                    value
-                                }
-                            }
-                        }
-                    }
-                    options {
-                        name
-                        values
-                    }
-                    tags
-                    vendor
-                }
-            }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['handle' => $handle]);
-        
-        if ($result && isset($result['productByHandle'])) {
-            return $result['productByHandle'];
-        }
-        
-        return null;
-    }
-    
-    public function getProductById($id)
-    {
-        $query = '
-            query GetProductById($id: ID!) {
-                node(id: $id) {
-                    ... on Product {
-                        id
-                        title
-                        handle
-                        description
-                        availableForSale
-                        priceRange {
-                            minVariantPrice {
-                                amount
-                                currencyCode
-                            }
-                        }
-                        images(first: 1) {
-                            edges {
-                                node {
-                                    url
-                                    altText
-                                }
-                            }
-                        }
-                        variants(first: 1) {
-                            edges {
-                                node {
-                                    id
-                                    title
-                                    price {
-                                        amount
-                                        currencyCode
-                                    }
-                                    availableForSale
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['id' => $id]);
-        
-        if ($result && isset($result['node'])) {
-            return $result['node'];
-        }
-        
-        return null;
-    }
-    
-    public function getProductRecommendations($productId)
-    {
-        $query = '
-            query GetRecommendations($productId: ID!) {
-                productRecommendations(productId: $productId) {
-                    id
-                    title
-                    handle
-                    priceRange {
-                        minVariantPrice {
-                            amount
-                            currencyCode
-                        }
-                    }
-                    images(first: 1) {
-                        edges {
-                            node {
-                                url
-                                altText
-                            }
-                        }
-                    }
-                }
-            }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['productId' => $productId]);
-        
-        if ($result && isset($result['productRecommendations'])) {
-            return $result['productRecommendations'];
-        }
-        
-        return [];
-    }
-    
-    // ============================================
-    // COLLECTION METHODS
-    // ============================================
-    
-    public function getCollectionsWithCount($limit = 10)
-    {
-        Cache::forget('shopify_collections');
-        
-        $query = '
-            query GetCollections($first: Int!) {
-                collections(first: $first) {
-                    edges {
-                        node {
-                            id
-                            title
-                            handle
-                            image {
-                                url
-                                altText
-                            }
-                            products(first: 250) {
-                                edges {
-                                    node {
-                                        id
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['first' => $limit]);
-        
-        if ($result && isset($result['collections']['edges'])) {
-            $collections = [];
-            foreach ($result['collections']['edges'] as $edge) {
-                $node = $edge['node'];
-                $count = 0;
-                if (isset($node['products']['edges'])) {
-                    $count = count($node['products']['edges']);
-                }
-                
-                $collections[] = [
-                    'id' => $node['id'],
-                    'name' => $node['title'],
-                    'title' => $node['title'],
-                    'handle' => $node['handle'],
-                    'description' => '',
-                    'image' => $node['image']['url'] ?? null,
-                    'imageAlt' => $node['image']['altText'] ?? $node['title'],
-                    'count' => $count,
-                    'productCount' => $count,
-                    'icon' => $this->getCategoryIcon($node['title']),
-                    'color' => $this->getCategoryColor($node['title'])
-                ];
-            }
-            
-            Cache::put('shopify_collections', $collections, 3600);
-            return $collections;
-        }
-        
-        return [];
-    }
-    
-    public function getAllCollections($limit = 30)
-    {
-        Cache::forget('shopify_all_collections');
-        
-        $query = '
-            query GetAllCollections($first: Int!) {
-                collections(first: $first) {
-                    edges {
-                        node {
-                            id
-                            title
-                            handle
-                            description
-                            image {
-                                url
-                                altText
-                            }
-                            products(first: 250) {
-                                edges {
-                                    node {
-                                        id
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['first' => $limit]);
-        
-        if ($result && isset($result['collections']['edges'])) {
-            $collections = [];
-            foreach ($result['collections']['edges'] as $edge) {
-                $node = $edge['node'];
-                $count = 0;
-                if (isset($node['products']['edges'])) {
-                    $count = count($node['products']['edges']);
-                }
-                
-                $collections[] = [
-                    'id' => $node['id'],
-                    'title' => $node['title'],
-                    'handle' => $node['handle'],
-                    'description' => $node['description'] ?? '',
-                    'image' => $node['image']['url'] ?? null,
-                    'imageAlt' => $node['image']['altText'] ?? $node['title'],
-                    'productCount' => $count,
-                    'products' => [],
-                    'icon' => $this->getCategoryIcon($node['title']),
-                    'color' => $this->getCategoryColor($node['title'])
-                ];
-            }
-            
-            Cache::put('shopify_all_collections', $collections, 3600);
-            Cache::put('shopify_collections', $collections, 3600);
-            
-            return $collections;
-        }
-        
-        return [];
-    }
-    
-    public function getCollectionByHandle($handle)
-    {
-        $query = '
-            query GetCollection($handle: String!) {
-                collectionByHandle(handle: $handle) {
-                    id
-                    title
-                    handle
-                    description
-                    image {
-                        url
-                        altText
-                    }
-                    products(first: 250) {
-                        edges {
-                            node {
-                                id
-                                title
-                                handle
-                                description
-                                availableForSale
-                                priceRange {
-                                    minVariantPrice {
-                                        amount
-                                        currencyCode
-                                    }
-                                }
-                                compareAtPriceRange {
-                                    minVariantPrice {
-                                        amount
-                                        currencyCode
-                                    }
-                                }
-                                images(first: 1) {
-                                    edges {
-                                        node {
-                                            url
-                                            altText
-                                        }
-                                    }
-                                }
-                                variants(first: 1) {
-                                    edges {
-                                        node {
-                                            id
-                                            title
-                                            price {
-                                                amount
-                                                currencyCode
-                                            }
-                                            availableForSale
-                                        }
-                                    }
-                                }
-                                tags
-                                vendor
-                            }
-                        }
-                    }
-                }
-            }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['handle' => $handle]);
-        
-        if ($result && isset($result['collectionByHandle'])) {
-            $node = $result['collectionByHandle'];
-            $products = [];
-            
-            if (isset($node['products']['edges'])) {
-                foreach ($node['products']['edges'] as $productEdge) {
-                    $productNode = $productEdge['node'];
-                    $products[] = [
-                        'id' => $productNode['id'],
-                        'title' => $productNode['title'],
-                        'handle' => $productNode['handle'],
-                        'description' => $productNode['description'],
-                        'availableForSale' => $productNode['availableForSale'],
-                        'price' => $productNode['priceRange']['minVariantPrice']['amount'] ?? '0.00',
-                        'comparePrice' => $productNode['compareAtPriceRange']['minVariantPrice']['amount'] ?? null,
-                        'image' => $productNode['images']['edges'][0]['node']['url'] ?? null,
-                        'variantId' => $productNode['variants']['edges'][0]['node']['id'] ?? null,
-                        'vendor' => $productNode['vendor'] ?? '',
-                        'tags' => $productNode['tags'] ?? []
-                    ];
-                }
-            }
-            
-            return [
-                'id' => $node['id'],
-                'title' => $node['title'],
-                'handle' => $node['handle'],
-                'description' => $node['description'] ?? '',
-                'image' => $node['image']['url'] ?? null,
-                'imageAlt' => $node['image']['altText'] ?? $node['title'],
-                'productCount' => count($products),
-                'products' => $products,
-                'icon' => $this->getCategoryIcon($node['title']),
-                'color' => $this->getCategoryColor($node['title'])
+        $products = [];
+        for ($i = 1; $i <= $limit; $i++) {
+            $products[] = [
+                'id' => "mock_{$i}",
+                'title' => "Mock Product {$i}",
+                'handle' => "mock-product-{$i}",
+                'description' => "This is mock product {$i} for testing.",
+                'availableForSale' => true,
+                'vendor' => 'BT Clothes',
+                'priceRange' => [
+                    'minVariantPrice' => [
+                        'amount' => number_format(rand(20, 100), 2),
+                        'currencyCode' => 'USD'
+                    ]
+                ],
+                'compareAtPriceRange' => rand(0, 1) ? [
+                    'minVariantPrice' => [
+                        'amount' => number_format(rand(50, 150), 2),
+                        'currencyCode' => 'USD'
+                    ]
+                ] : null,
+                'images' => ['edges' => []],
+                'variants' => [
+                    'edges' => [
+                        [
+                            'node' => [
+                                'id' => "variant_{$i}",
+                                'title' => 'Default Title',
+                                'price' => [
+                                    'amount' => number_format(rand(20, 100), 2),
+                                    'currencyCode' => 'USD'
+                                ],
+                                'availableForSale' => true
+                            ]
+                        ]
+                    ]
+                ]
             ];
         }
-        
-        return null;
+        return $products;
     }
-    
-    // ============================================
-    // HELPER METHODS
-    // ============================================
     
     protected function getCategoryIcon($name)
     {
@@ -1024,21 +945,201 @@ class ShopifyService
         return 'from-gray-100 to-gray-200';
     }
 
-
-    /**
- * Search Products (Alias for controller)
- */
-public function searchProducts($query, $limit = 20)
+    public function product($handle)
 {
-    $searchQuery = '
-        query SearchProducts($query: String!, $first: Int!) {
-            products(first: $first, query: $query) {
+    try {
+        $product = $this->shopify->getProductByHandle($handle);
+        
+        if (!$product) {
+            abort(404);
+        }
+        
+        // ✅ Get recommendations based on collection/tags/vendor
+        $recommendations = $this->shopify->getRecommendationsByProduct($product);
+        
+        return view('shop.product', [
+            'product' => $product,
+            'recommendations' => $recommendations
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Product error: ' . $e->getMessage());
+        abort(404);
+    }
+}
+
+/**
+ * Get Recommendations By Product
+ * - Pehle same collection se products
+ * - Agar collection nahi toh same tags/vendor se
+ */
+public function getRecommendationsByProduct($product, $limit = 4)
+{
+    try {
+        // Step 1: Get product's collection handles
+        $collectionHandles = $this->getProductCollectionHandles($product['handle']);
+        
+        $recommendations = [];
+        
+        // Step 2: Try to get products from same collections
+        if (!empty($collectionHandles)) {
+            foreach ($collectionHandles as $collectionHandle) {
+                $collectionProducts = $this->getCollectionProductsRecommendations($collectionHandle, $limit);
+                foreach ($collectionProducts as $p) {
+                    if ($p['handle'] !== $product['handle'] && !in_array($p['handle'], array_column($recommendations, 'handle'))) {
+                        $recommendations[] = $p;
+                    }
+                }
+                if (count($recommendations) >= $limit) {
+                    break;
+                }
+            }
+        }
+        
+        // Step 3: If not enough, get from same tags
+        if (count($recommendations) < $limit) {
+            $tagProducts = $this->getProductsByTags($product['tags'] ?? [], $limit, $product['handle']);
+            foreach ($tagProducts as $p) {
+                if (!in_array($p['handle'], array_column($recommendations, 'handle'))) {
+                    $recommendations[] = $p;
+                }
+            }
+        }
+        
+        // Step 4: If still not enough, get from same vendor
+        if (count($recommendations) < $limit) {
+            $vendorProducts = $this->getProductsByVendor($product['vendor'] ?? '', $limit, $product['handle']);
+            foreach ($vendorProducts as $p) {
+                if (!in_array($p['handle'], array_column($recommendations, 'handle'))) {
+                    $recommendations[] = $p;
+                }
+            }
+        }
+        
+        // Step 5: If still not enough, get any random products
+        if (count($recommendations) < $limit) {
+            $randomProducts = $this->getRandomProducts($limit, $product['handle']);
+            foreach ($randomProducts as $p) {
+                if (!in_array($p['handle'], array_column($recommendations, 'handle'))) {
+                    $recommendations[] = $p;
+                }
+            }
+        }
+        
+        return array_slice($recommendations, 0, $limit);
+        
+    } catch (\Exception $e) {
+        Log::error('Recommendations error: ' . $e->getMessage());
+        return $this->getRandomProducts($limit, $product['handle'] ?? '');
+    }
+}
+
+/**
+ * Get Product Collection Handles
+ */
+protected function getProductCollectionHandles($productHandle)
+{
+    $query = '
+        query GetProductCollections($handle: String!) {
+            productByHandle(handle: $handle) {
+                collections(first: 5) {
+                    edges {
+                        node {
+                            handle
+                        }
+                    }
+                }
+            }
+        }
+    ';
+    
+    $result = $this->graphqlQuery($query, ['handle' => $productHandle]);
+    
+    $collections = [];
+    if ($result && isset($result['productByHandle']['collections']['edges'])) {
+        foreach ($result['productByHandle']['collections']['edges'] as $edge) {
+            $collections[] = $edge['node']['handle'];
+        }
+    }
+    
+    return $collections;
+}
+
+/**
+ * Get Collection Products for Recommendations
+ */
+protected function getCollectionProductsRecommendations($collectionHandle, $limit)
+{
+    $query = '
+        query GetCollectionProducts($handle: String!, $first: Int!) {
+            collectionByHandle(handle: $handle) {
+                products(first: $first) {
+                    edges {
+                        node {
+                            id
+                            title
+                            handle
+                            availableForSale
+                            priceRange {
+                                minVariantPrice {
+                                    amount
+                                    currencyCode
+                                }
+                            }
+                            compareAtPriceRange {
+                                minVariantPrice {
+                                    amount
+                                    currencyCode
+                                }
+                            }
+                            images(first: 1) {
+                                edges {
+                                    node {
+                                        url
+                                        altText
+                                    }
+                                }
+                            }
+                            vendor
+                            tags
+                        }
+                    }
+                }
+            }
+        }
+    ';
+    
+    $result = $this->graphqlQuery($query, [
+        'handle' => $collectionHandle,
+        'first' => $limit + 2
+    ]);
+    
+    $products = [];
+    if ($result && isset($result['collectionByHandle']['products']['edges'])) {
+        foreach ($result['collectionByHandle']['products']['edges'] as $edge) {
+            $products[] = $edge['node'];
+        }
+    }
+    
+    return $products;
+}
+
+/**
+ * Get Products by Tags
+ */
+protected function getProductsByTags($tags, $limit, $excludeHandle)
+{
+    if (empty($tags)) {
+        return [];
+    }
+    
+    $query = '
+        query GetProductsByTags($first: Int!) {
+            products(first: $first, query: "' . $tags[0] . '") {
                 edges {
                     node {
                         id
                         title
                         handle
-                        description
                         availableForSale
                         priceRange {
                             minVariantPrice {
@@ -1057,216 +1158,144 @@ public function searchProducts($query, $limit = 20)
                                 node {
                                     url
                                     altText
-                                    width
-                                    height
                                 }
                             }
                         }
-                        variants(first: 1) {
-                            edges {
-                                node {
-                                    id
-                                    title
-                                    price {
-                                        amount
-                                        currencyCode
-                                    }
-                                    availableForSale
-                                }
-                            }
-                        }
-                        tags
                         vendor
+                        tags
                     }
                 }
             }
         }
     ';
     
-    $result = $this->graphqlQuery($searchQuery, [
-        'query' => $query,
-        'first' => $limit
-    ]);
+    $result = $this->graphqlQuery($query, ['first' => $limit + 4]);
     
+    $products = [];
     if ($result && isset($result['products']['edges'])) {
-        return array_map(function($edge) {
-            return $edge['node'];
-        }, $result['products']['edges']);
-    }
-    
-    return [];
-}
-
-
-// ============================================
-// CUSTOMER ACCOUNT METHODS
-// ============================================
-
-/**
- * Create Customer Account
- */
-public function createCustomer($email, $firstName = null, $lastName = null, $password = null)
-{
-    $query = '
-        mutation CustomerCreate($input: CustomerCreateInput!) {
-            customerCreate(input: $input) {
-                customer {
-                    id
-                    email
-                    firstName
-                    lastName
-                    displayName
-                }
-                userErrors {
-                    field
-                    message
-                }
+        foreach ($result['products']['edges'] as $edge) {
+            if ($edge['node']['handle'] !== $excludeHandle) {
+                $products[] = $edge['node'];
             }
         }
-    ';
-    
-    $input = [
-        'email' => $email,
-    ];
-    
-    if ($firstName) $input['firstName'] = $firstName;
-    if ($lastName) $input['lastName'] = $lastName;
-    if ($password) $input['password'] = $password;
-    
-    $result = $this->graphqlQuery($query, ['input' => $input]);
-    
-    if ($result && isset($result['customerCreate']['customer'])) {
-        return $result['customerCreate']['customer'];
     }
     
-    return null;
+    return $products;
 }
 
 /**
- * Get Customer by Email
+ * Get Products by Vendor
  */
-public function getCustomerByEmail($email)
+protected function getProductsByVendor($vendor, $limit, $excludeHandle)
 {
+    if (empty($vendor)) {
+        return [];
+    }
+    
     $query = '
-        query GetCustomer($email: String!) {
-            customers(first: 1, query: "email:' . $email . '") {
+        query GetProductsByVendor($first: Int!) {
+            products(first: $first, query: "vendor:' . $vendor . '") {
                 edges {
                     node {
                         id
-                        email
-                        firstName
-                        lastName
-                        displayName
-                        phone
-                        ordersCount
-                        totalSpent {
-                            amount
-                        }
-                    }
-                }
-            }
-        }
-    ';
-    
-    $result = $this->graphqlQuery($query, ['email' => $email]);
-    
-    if ($result && isset($result['customers']['edges'][0]['node'])) {
-        return $result['customers']['edges'][0]['node'];
-    }
-    
-    return null;
-}
-
-/**
- * Login Customer
- */
-public function loginCustomer($email, $password)
-{
-    $query = '
-        mutation CustomerAccessTokenCreate($input: CustomerAccessTokenCreateInput!) {
-            customerAccessTokenCreate(input: $input) {
-                customerAccessToken {
-                    accessToken
-                    expiresAt
-                }
-                userErrors {
-                    field
-                    message
-                }
-            }
-        }
-    ';
-    
-    $result = $this->graphqlQuery($query, [
-        'input' => [
-            'email' => $email,
-            'password' => $password
-        ]
-    ]);
-    
-    if ($result && isset($result['customerAccessTokenCreate']['customerAccessToken'])) {
-        return $result['customerAccessTokenCreate']['customerAccessToken'];
-    }
-    
-    return null;
-}
-
-/**
- * Get Customer by Access Token
- */
-public function getCustomerByToken($accessToken)
-{
-    $query = '
-        query GetCustomer($accessToken: String!) {
-            customer(customerAccessToken: $accessToken) {
-                id
-                email
-                firstName
-                lastName
-                displayName
-                phone
-                ordersCount
-                totalSpent {
-                    amount
-                }
-                addresses(first: 5) {
-                    edges {
-                        node {
-                            id
-                            address1
-                            address2
-                            city
-                            province
-                            country
-                            zip
-                        }
-                    }
-                }
-                orders(first: 10) {
-                    edges {
-                        node {
-                            id
-                            orderNumber
-                            createdAt
-                            totalPrice {
+                        title
+                        handle
+                        availableForSale
+                        priceRange {
+                            minVariantPrice {
                                 amount
                                 currencyCode
                             }
-                            financialStatus
-                            fulfillmentStatus
                         }
+                        compareAtPriceRange {
+                            minVariantPrice {
+                                amount
+                                currencyCode
+                            }
+                        }
+                        images(first: 1) {
+                            edges {
+                                node {
+                                    url
+                                    altText
+                                }
+                            }
+                        }
+                        vendor
+                        tags
                     }
                 }
             }
         }
     ';
     
-    $result = $this->graphqlQuery($query, ['accessToken' => $accessToken]);
+    $result = $this->graphqlQuery($query, ['first' => $limit + 4]);
     
-    if ($result && isset($result['customer'])) {
-        return $result['customer'];
+    $products = [];
+    if ($result && isset($result['products']['edges'])) {
+        foreach ($result['products']['edges'] as $edge) {
+            if ($edge['node']['handle'] !== $excludeHandle) {
+                $products[] = $edge['node'];
+            }
+        }
     }
     
-    return null;
+    return $products;
+}
+
+/**
+ * Get Random Products
+ */
+protected function getRandomProducts($limit, $excludeHandle)
+{
+    $query = '
+        query GetRandomProducts($first: Int!) {
+            products(first: $first, sortKey: CREATED_AT, reverse: true) {
+                edges {
+                    node {
+                        id
+                        title
+                        handle
+                        availableForSale
+                        priceRange {
+                            minVariantPrice {
+                                amount
+                                currencyCode
+                            }
+                        }
+                        compareAtPriceRange {
+                            minVariantPrice {
+                                amount
+                                currencyCode
+                            }
+                        }
+                        images(first: 1) {
+                            edges {
+                                node {
+                                    url
+                                    altText
+                                }
+                            }
+                        }
+                        vendor
+                        tags
+                    }
+                }
+            }
+        }
+    ';
+    
+    $result = $this->graphqlQuery($query, ['first' => $limit + 4]);
+    
+    $products = [];
+    if ($result && isset($result['products']['edges'])) {
+        foreach ($result['products']['edges'] as $edge) {
+            if ($edge['node']['handle'] !== $excludeHandle) {
+                $products[] = $edge['node'];
+            }
+        }
+    }
+    
+    return $products;
 }
 }
