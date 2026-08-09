@@ -164,3 +164,12 @@ Route::get('/pages/{page}', function ($page) {
     }
     abort(404);
 })->name('page');
+
+
+Route::get('/test', function () {
+    return response()->json([
+        'env' => app()->environment(),
+        'debug' => config('app.debug'),
+        'shopify_store' => config('shopify.store'),
+    ]);
+});
