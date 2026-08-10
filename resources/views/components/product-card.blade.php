@@ -143,7 +143,7 @@
 
     $variantId = null;
 
-    if ($variantCount === 1) {
+    if ($variantCount >= 1) {
 
         $variantId =
             $variants[0]['id']
@@ -386,12 +386,12 @@
             {{-- ================================================= --}}
             {{-- SINGLE VARIANT --}}
             {{-- ================================================= --}}
-            {{-- SAFE TO ADD DIRECTLY --}}
+            {{-- ✅ DIRECT ADD TO CART --}}
             {{-- ================================================= --}}
 
             <button
                 type="button"
-                class="add-to-cart-btn mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700"
+                class="add-to-cart-btn mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700 active:scale-95"
                 data-variant-id="{{ $variantId }}"
                 onclick="addToCart(this)"
             >

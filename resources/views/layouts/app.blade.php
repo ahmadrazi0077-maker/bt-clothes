@@ -62,93 +62,85 @@
     
     <!-- ✅ All JavaScript -->
     <script>
-        function addToCart(variantId) {
-            if (!variantId) {
-                showToast('❌ Please select a variant');
-                return;
-            }
-            
-            const btn = document.querySelector('.add-to-cart-btn');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = '⏳ Adding...';
-                btn.classList.add('opacity-70');
-            }
-            
-            fetch('/cart/add', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    variant_id: variantId,
-                    quantity: 1
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (btn) {
-                    if (data.success) {
-                        btn.textContent = '✅ Added!';
-                        btn.classList.add('bg-green-600');
-                        btn.classList.remove('bg-gray-900');
-                        updateCartCount();
-                        showToast('🛒 Product added to cart!');
-                        setTimeout(() => {
-                            btn.textContent = '🛒 Add to Cart';
-                            btn.disabled = false;
-                            btn.classList.remove('opacity-70', 'bg-green-600');
-                            btn.classList.add('bg-gray-900');
-                        }, 2000);
-                    } else {
-                        btn.textContent = '❌ Failed';
-                        setTimeout(() => {
-                            btn.textContent = '🛒 Add to Cart';
-                            btn.disabled = false;
-                            btn.classList.remove('opacity-70');
-                        }, 2000);
-                        showToast('❌ ' + (data.message || 'Error adding to cart'));
-                    }
-                }
-            })
-            .catch(() => {
-                if (btn) {
-                    btn.textContent = '🛒 Add to Cart';
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-70');
-                }
-                showToast('❌ Error adding to cart');
-            });
-        }
-        
-        function updateCartCount() {
-            fetch('/cart/count')
-                .then(response => response.json())
-                .then(data => {
-                    const el = document.querySelector('.cart-count');
-                    if (el) el.textContent = data.count || 0;
-                })
-                .catch(() => {});
-        }
-        
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
-            if (toast && toastMessage) {
-                toastMessage.textContent = message;
-                toast.classList.add('show');
-                clearTimeout(toast._timeout);
-                toast._timeout = setTimeout(() => {
-                    toast.classList.remove('show');
-                }, 3000);
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
+        function addToCart(button) {
+    const variantId = button.dataset.variantId;
+    
+    if (!variantId) {
+        showToast('❌ Product variant not found');
+        return;
+    }
+    
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.classList.add('opacity-70');
+    button.innerHTML = '⏳ Adding...';
+    
+    fetch('/cart/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            variant_id: variantId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.innerHTML = '✅ Added!';
+            button.classList.add('bg-green-600');
+            button.classList.remove('bg-gray-900');
             updateCartCount();
-            console.log('✅ BT Clothes loaded!');
-        });
+            showToast('🛒 Product added to cart!');
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.classList.remove('opacity-70', 'bg-green-600');
+                button.classList.add('bg-gray-900');
+            }, 2000);
+        } else {
+            button.innerHTML = '❌ Failed';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.classList.remove('opacity-70');
+            }, 2000);
+            showToast('❌ ' + (data.message || 'Error adding to cart'));
+        }
+    })
+    .catch(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        button.classList.remove('opacity-70');
+        showToast('❌ Error adding to cart');
+    });
+}
+
+function updateCartCount() {
+    fetch('/cart/count')
+        .then(response => response.json())
+        .then(data => {
+            const el = document.querySelector('.cart-count');
+            if (el) el.textContent = data.count || 0;
+        })
+        .catch(() => {});
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+    if (toast && toastMessage) {
+        toastMessage.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+}
     </script>
     
     @stack('scripts')
