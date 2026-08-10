@@ -5,79 +5,134 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'BT Clothes')</title>
-    <meta name="description" content="@yield('description', 'Timeless clothing for the modern minimalist.')">
-
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
-
-<!-- ✅ Use CDN for Tailwind -->
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.13/dist/tailwind.min.css" rel="stylesheet">
-
-<!-- ✅ Custom CSS -->
-<link rel="stylesheet" href="{{ asset('css/custom.css') }}">
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- ✅ Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Tailwind CSS -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ asset('css/custom.css') }}">
+    <!-- ✅ Custom CSS - Direct inline -->
+    <style>
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+        }
+        .product-card img {
+            transition: transform 0.5s ease;
+        }
+        .product-card:hover img {
+            transform: scale(1.05);
+        }
+        .add-to-cart-btn {
+            transition: all 0.3s ease;
+        }
+        .add-to-cart-btn:active {
+            transform: scale(0.95);
+        }
+        #toast.show {
+            transform: translateY(0) !important;
+            opacity: 1 !important;
+        }
+    </style>
     
     @stack('styles')
 </head>
 <body>
-    <!-- Toast Notification -->
+    <!-- Toast -->
     <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 opacity-0 transition-all duration-500 z-50 max-w-sm">
-    <span id="toast-message"></span>
-</div>
+        <span id="toast-message"></span>
+    </div>
     
-    <!-- ✅ ANNOUNCEMENT BAR -->
-   
-    <!-- ✅ TEST ANNOUNCEMENT BAR - DIRECT HTML -->
+    <!-- Announcement Bar -->
     <div style="background: #1a1a1a; color: white; padding: 10px 20px; text-align: center; position: relative; z-index: 999;">
         <div style="max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
-            <span style="font-size: 14px;">
-                🚚 Free Shipping on orders over Rs. 2500 | Use code: <strong>WELCOME10</strong> for 10% off
-            </span>
-            <a href="/collections/all" style="color: white; text-decoration: underline; font-weight: 600; font-size: 14px;">
-                Shop Now →
-            </a>
-            <button onclick="this.parentElement.parentElement.style.display='none'" 
-                    style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; position: absolute; right: 20px; top: 50%; transform: translateY(-50%);">
-                ✕
-            </button>
+            <span style="font-size: 14px;">🚚 Free Shipping on orders over Rs. 2500 | Use code: <strong>WELCOME10</strong> for 10% off</span>
+            <a href="/collections/all" style="color: white; text-decoration: underline; font-weight: 600; font-size: 14px;">Shop Now →</a>
+            <button onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; position: absolute; right: 20px; top: 50%; transform: translateY(-50%);">✕</button>
         </div>
     </div>
     
-   
-    
-    <!-- Header -->
     @include('components.header')
     
-    <!-- Main Content -->
     <main>
         @yield('content')
     </main>
     
-    <!-- Footer -->
     @include('components.footer')
-    
-    <!-- Quick View Modal -->
     @include('components.quick-view')
-    <!-- At the end of body, before scripts -->
-@include('components.quick-add-modal')
-    <!-- Scripts -->
-    @vite(['resources/js/app.js'])
-    <script src="{{ asset('js/custom.js') }}"></script>
-    @stack('scripts')
+    @include('components.quick-add-modal')
     
+    <!-- ✅ All JavaScript -->
     <script>
-        // ===== Toast Notification (Global) =====
-        window.showToast = function(message) {
+        function addToCart(variantId) {
+            if (!variantId) {
+                showToast('❌ Please select a variant');
+                return;
+            }
+            
+            const btn = document.querySelector('.add-to-cart-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Adding...';
+                btn.classList.add('opacity-70');
+            }
+            
+            fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    variant_id: variantId,
+                    quantity: 1
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (btn) {
+                    if (data.success) {
+                        btn.textContent = '✅ Added!';
+                        btn.classList.add('bg-green-600');
+                        btn.classList.remove('bg-gray-900');
+                        updateCartCount();
+                        showToast('🛒 Product added to cart!');
+                        setTimeout(() => {
+                            btn.textContent = '🛒 Add to Cart';
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-70', 'bg-green-600');
+                            btn.classList.add('bg-gray-900');
+                        }, 2000);
+                    } else {
+                        btn.textContent = '❌ Failed';
+                        setTimeout(() => {
+                            btn.textContent = '🛒 Add to Cart';
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-70');
+                        }, 2000);
+                        showToast('❌ ' + (data.message || 'Error adding to cart'));
+                    }
+                }
+            })
+            .catch(() => {
+                if (btn) {
+                    btn.textContent = '🛒 Add to Cart';
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-70');
+                }
+                showToast('❌ Error adding to cart');
+            });
+        }
+        
+        function updateCartCount() {
+            fetch('/cart/count')
+                .then(response => response.json())
+                .then(data => {
+                    const el = document.querySelector('.cart-count');
+                    if (el) el.textContent = data.count || 0;
+                })
+                .catch(() => {});
+        }
+        
+        function showToast(message) {
             const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toast-message');
             if (toast && toastMessage) {
@@ -88,11 +143,14 @@
                     toast.classList.remove('show');
                 }, 3000);
             }
-        };
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCartCount();
+            console.log('✅ BT Clothes loaded!');
+        });
     </script>
-
-    <!-- At the end of body -->
-<script src="{{ asset('js/custom.js') }}"></script>
-@stack('scripts')
     
+    @stack('scripts')
+</body>
 </html>
