@@ -70,10 +70,12 @@
         return;
     }
     
+    console.log('🛒 Adding to cart:', variantId);
+    
     const originalText = button.innerHTML;
     button.disabled = true;
-    button.classList.add('opacity-70');
     button.innerHTML = '⏳ Adding...';
+    button.classList.add('opacity-70');
     
     fetch('/cart/add', {
         method: 'POST',
@@ -88,13 +90,13 @@
     })
     .then(response => response.json())
     .then(data => {
+        console.log('📦 Response:', data);
         if (data.success) {
             button.innerHTML = '✅ Added!';
             button.classList.add('bg-green-600');
             button.classList.remove('bg-gray-900');
             updateCartCount();
             showToast('🛒 Product added to cart!');
-            
             setTimeout(() => {
                 button.innerHTML = originalText;
                 button.disabled = false;
@@ -111,7 +113,8 @@
             showToast('❌ ' + (data.message || 'Error adding to cart'));
         }
     })
-    .catch(() => {
+    .catch(error => {
+        console.error('❌ Error:', error);
         button.innerHTML = originalText;
         button.disabled = false;
         button.classList.remove('opacity-70');
