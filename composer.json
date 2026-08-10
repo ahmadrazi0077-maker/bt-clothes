@@ -1,8 +1,27 @@
 {
-  "scripts": {
-    "post-autoload-dump": [
-      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-      "@php artisan package:discover --ansi"
-    ]
-  }
+    "name": "laravel/laravel",
+    "type": "project",
+
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.15",
+        "laravel/framework": "^12.0",
+        "laravel/socialite": "^5.29",
+        "laravel/tinker": "^2.10.1",
+        "shopify/shopify-api": "^6.1"
+    },
+
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    }
 }
