@@ -104,17 +104,6 @@ use App\Http\Controllers\NewsletterController;
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])
     ->name('newsletter.subscribe');
 
-use App\Http\Controllers\ContactController;
-
-// ============================================
-// CONTACT ROUTES
-// ============================================
-
-Route::get('/contact', [ContactController::class, 'index'])->name('contact');
-Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
-
-
-
 use App\Http\Controllers\ApiController;
 
 // ============================================
