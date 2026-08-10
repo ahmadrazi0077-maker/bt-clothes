@@ -16,3 +16,17 @@ echo "STEP 3<br>";
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 
 echo "STEP 4<br>";
+
+$request = Illuminate\Http\Request::capture();
+
+echo "STEP 5<br>";
+
+$response = $kernel->handle($request);
+
+echo "STEP 6<br>";
+
+$response->send();
+
+echo "STEP 7<br>";
+
+$kernel->terminate($request, $response);
