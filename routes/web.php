@@ -9,10 +9,7 @@ use App\Http\Controllers\BlogController;
 // HOME
 // ============================================
 
-Route::get('/', function () {
-    return 'Laravel route is working!';
-});
-
+Route::get('/', [ShopifyController::class, 'home'])->name('home');
 
 // ============================================
 // PRODUCTS
