@@ -1,4 +1,18 @@
 <?php
 
-// Forward Vercel requests to public/index.php
-require __DIR__ . '/../public/index.php';
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
+echo "STEP 1<br>";
+
+require __DIR__ . '/../vendor/autoload.php';
+
+echo "STEP 2<br>";
+
+$app = require_once __DIR__ . '/../bootstrap/app.php';
+
+echo "STEP 3<br>";
+
+$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+
+echo "STEP 4<br>";
