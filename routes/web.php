@@ -9,7 +9,10 @@ use App\Http\Controllers\BlogController;
 // HOME
 // ============================================
 
-Route::get('/', [ShopifyController::class, 'home'])->name('home');
+Route::get('/', function () {
+    return 'Laravel route is working!';
+});
+
 
 // ============================================
 // PRODUCTS
@@ -62,13 +65,13 @@ Route::get('/checkout', [ShopifyController::class, 'checkout'])->name('checkout'
 // ✅ CUSTOMER ACCOUNT ROUTES (ADD THIS)
 // ============================================
 
-Route::prefix('account')->group(function () {
-    Route::get('/', [CustomerController::class, 'index'])->name('account.index');
-    Route::post('/login', [CustomerController::class, 'login'])->name('account.login');
-    Route::post('/register', [CustomerController::class, 'register'])->name('account.register');
-    Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('account.dashboard');
-    Route::get('/logout', [CustomerController::class, 'logout'])->name('account.logout');
-});
+// Route::prefix('account')->group(function () {
+//     Route::get('/', [CustomerController::class, 'index'])->name('account.index');
+//     Route::post('/login', [CustomerController::class, 'login'])->name('account.login');
+//     Route::post('/register', [CustomerController::class, 'register'])->name('account.register');
+//     Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('account.dashboard');
+//     Route::get('/logout', [CustomerController::class, 'logout'])->name('account.logout');
+// });
 
 // ============================================
 // BLOG
@@ -93,33 +96,8 @@ Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallba
 Route::get('/auth/shop', [CustomerController::class, 'shopLogin'])->name('shop.login');
 
 // ============================================
-// PASSWORDLESS LOGIN ROUTES
-// ============================================
-
-// ============================================
 // CUSTOMER ACCOUNT ROUTES
 // ============================================
-
-
-
-// ============================================
-// CUSTOMER ACCOUNT ROUTES
-// ============================================
-
-
-
-Route::prefix('account')->group(function () {
-    Route::get('/', [CustomerController::class, 'index'])->name('account.index');
-    Route::post('/login', [CustomerController::class, 'login'])->name('account.login');
-    Route::post('/request-otp', [CustomerController::class, 'requestOtp'])->name('account.request-otp');
-    Route::post('/verify-otp', [CustomerController::class, 'verifyOtp'])->name('account.verify-otp');
-    Route::get('/dashboard', [CustomerController::class, 'dashboard'])->name('account.dashboard');
-    Route::get('/logout', [CustomerController::class, 'logout'])->name('account.logout');
-});
-
-
-
-
 // ============================================
 // NEWSLETTER ROUTE
 // ============================================
@@ -138,10 +116,7 @@ use App\Http\Controllers\ContactController;
 Route::get('/contact', [ContactController::class, 'index'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 
-// Admin - View contact messages
-Route::get('/admin/contact', [ContactController::class, 'adminIndex'])->name('admin.contact');
 
-Route::get('/api/product/{id}', [ApiController::class, 'getProduct']);
 
 use App\Http\Controllers\ApiController;
 
@@ -166,10 +141,3 @@ Route::get('/pages/{page}', function ($page) {
 })->name('page');
 
 
-Route::get('/test', function () {
-    return response()->json([
-        'env' => app()->environment(),
-        'debug' => config('app.debug'),
-        'shopify_store' => config('shopify.store'),
-    ]);
-});
