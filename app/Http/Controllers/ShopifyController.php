@@ -511,7 +511,7 @@ public function home()
             'message' => $e->getMessage()
         ], 500);
     }
-}
+} 
     
     public function updateCart(Request $request)
     {
