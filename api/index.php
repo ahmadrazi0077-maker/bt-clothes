@@ -3,12 +3,35 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-require __DIR__ . '/../vendor/autoload.php';
+try {
+    echo "A<br>";
 
-$app = require_once __DIR__ . '/../bootstrap/app.php';
+    require __DIR__ . '/../vendor/autoload.php';
+    echo "B<br>";
 
-$request = Illuminate\Http\Request::capture();
+    $app = require __DIR__ . '/../bootstrap/app.php';
+    echo "C<br>";
 
-$response = $app->handleRequest($request);
+    $request = Illuminate\Http\Request::capture();
+    echo "D<br>";
 
-$response->send();
+    $response = $app->handleRequest($request);
+    echo "E<br>";
+
+    $response->send();
+    echo "F<br>";
+
+} catch (\Throwable $e) {
+
+    http_response_code(500);
+
+    echo "<h1>Laravel Error</h1>";
+    echo "<strong>Type:</strong> " . get_class($e) . "<br>";
+    echo "<strong>Message:</strong> " . htmlspecialchars($e->getMessage()) . "<br>";
+    echo "<strong>File:</strong> " . htmlspecialchars($e->getFile()) . "<br>";
+    echo "<strong>Line:</strong> " . $e->getLine() . "<br>";
+
+    echo "<pre>";
+    echo htmlspecialchars($e->getTraceAsString());
+    echo "</pre>";
+}
