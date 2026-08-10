@@ -195,23 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Error:', error));
 });
-// Update wishlist count
-function updateWishlistCount() {
-    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    const countEl = document.querySelector('.wishlist-count');
-    if (countEl) {
-        countEl.textContent = wishlist.length;
-    }
-}
 
-// Call on page load and when wishlist changes
-document.addEventListener('DOMContentLoaded', updateWishlistCount);
 
-// Override toggleWishlist to update count
-const originalToggle = window.toggleWishlist;
-window.toggleWishlist = function(productId) {
-    originalToggle(productId);
-    updateWishlistCount();
-};
 </script>
 @endpush
