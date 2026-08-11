@@ -478,7 +478,7 @@ public function home()
             'success' => true,
             'message' => 'Product added to cart!',
             'cart' => $cart,
-            'checkoutUrl' => $cart['checkoutUrl'] // ✅ Send checkout URL
+            'checkoutUrl' => $cart['checkoutUrl']
         ]);
     }
     

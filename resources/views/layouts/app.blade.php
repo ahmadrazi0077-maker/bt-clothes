@@ -73,7 +73,6 @@
     const originalText = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '⏳ Adding...';
-    button.classList.add('opacity-70');
     
     fetch('/cart/add', {
         method: 'POST',
@@ -91,32 +90,27 @@
         if (data.success) {
             button.innerHTML = '✅ Added!';
             button.classList.add('bg-green-600');
-            button.classList.remove('bg-gray-900');
             
-            // ✅ Update cart count only - NO REDIRECT
-            updateCartCount();
+            // ✅ Redirect to Shopify cart
             showToast('🛒 Product added to cart!');
-            
             setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70', 'bg-green-600');
-                button.classList.add('bg-gray-900');
-            }, 2000);
+                window.location.href = 'https://shop.btclothes.com/cart';
+            }, 800);
         } else {
             button.innerHTML = '❌ Failed';
             setTimeout(() => {
-                button.innerHTML = originalText;
+                button.innerHTML = '🛒 Add to Cart';
                 button.disabled = false;
-                button.classList.remove('opacity-70');
             }, 2000);
             showToast('❌ ' + (data.message || 'Error adding to cart'));
         }
     })
     .catch(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-        button.classList.remove('opacity-70');
+        button.innerHTML = '❌ Failed';
+        setTimeout(() => {
+            button.innerHTML = '🛒 Add to Cart';
+            button.disabled = false;
+        }, 2000);
         showToast('❌ Error adding to cart');
     });
 }
