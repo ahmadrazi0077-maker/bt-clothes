@@ -449,36 +449,44 @@ public function getProductById($id)
 
 public function getCart($cartId)
 {
-    $query = '
-        query GetCart($cartId: ID!) {
-            cart(id: $cartId) {
-                id
-                checkoutUrl
-                totalQuantity
-                lines(first: 20) {
-                    edges {
-                        node {
+   $query = <<<'GRAPHQL'
+query GetCart($cartId: ID!) {
+    cart(id: $cartId) {
+        id
+        checkoutUrl
+        totalQuantity
+
+        lines(first: 100) {
+            edges {
+                node {
+                    id
+                    quantity
+
+                    merchandise {
+                        ... on ProductVariant {
                             id
-                            quantity
-                            merchandise {
-                                ... on ProductVariant {
-                                    id
-                                    title
-                                    price {
-                                        amount
-                                        currencyCode
-                                    }
-                                    product {
-                                        id
-                                        title
-                                        handle
-                                        images(first: 1) {
-                                            edges {
-                                                node {
-                                                    url
-                                                    altText
-                                                }
-                                            }
+                            title
+
+                            price {
+                                amount
+                                currencyCode
+                            }
+
+                            product {
+                                id
+                                title
+                                handle
+
+                                featuredImage {
+                                    url
+                                    altText
+                                }
+
+                                images(first: 1) {
+                                    edges {
+                                        node {
+                                            url
+                                            altText
                                         }
                                     }
                                 }
@@ -486,19 +494,23 @@ public function getCart($cartId)
                         }
                     }
                 }
-                estimatedCost {
-                    subtotalAmount {
-                        amount
-                        currencyCode
-                    }
-                    totalAmount {
-                        amount
-                        currencyCode
-                    }
-                }
             }
         }
-    ';
+
+        cost {
+            subtotalAmount {
+                amount
+                currencyCode
+            }
+
+            totalAmount {
+                amount
+                currencyCode
+            }
+        }
+    }
+}
+GRAPHQL;
     
     $result = $this->graphqlQuery($query, ['cartId' => $cartId]);
     
@@ -511,7 +523,6 @@ public function getCart($cartId)
 
 public function addToCart($cartId, $lineItems)
 {
-    
     $query = '
         mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
             cartLinesAdd(cartId: $cartId, lines: $lines) {
