@@ -418,106 +418,61 @@ public function home()
    /**
  * Display shopping cart
  */
-public function cart()
+public function cart(Request $request)
 {
-    $cartId = Session::get('shopify_cart_id');
+    // Cookie is the primary source
+    $cartId = $request->cookie('shopify_cart_id');
+
+    // Session fallback
+    if (!$cartId) {
+        $cartId = session('shopify_cart_id');
+    }
+
     $cart = null;
 
-    Log::info('CART PAGE - START', [
-        'cart_id' => $cartId,
-    ]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Always fetch latest cart from Shopify
-    |--------------------------------------------------------------------------
-    */
-
     if ($cartId) {
-        try {
-            $cart = $this->shopify->getCart($cartId);
+        $cart = $this->shopify->getCart($cartId);
+    }
 
-            Log::info('CART PAGE - Shopify cart response', [
-                'cart_id' => $cartId,
-                'cart_found' => !empty($cart),
-                'total_quantity' => $cart['totalQuantity'] ?? null,
-            ]);
-
-            if ($cart) {
-                Session::put('shopify_cart', $cart);
-
-                // Keep the latest cart ID
-                if (!empty($cart['id'])) {
-                    Session::put('shopify_cart_id', $cart['id']);
-                }
-            }
-        } catch (\Throwable $e) {
-            Log::error('CART PAGE - Shopify getCart failed', [
-                'message' => $e->getMessage(),
-                'cart_id' => $cartId,
-            ]);
-        }
-    } else {
-        // Fallback to session cart if no cart ID exists
-        $cart = Session::get('shopify_cart');
-
-        Log::info('CART PAGE - No cart ID, using session cart', [
-            'cart_found' => !empty($cart),
+    if (!$cart) {
+        return view('cart.index', [
+            'cartItems' => [],
+            'subtotal' => 0,
+            'itemCount' => 0,
+            'checkoutUrl' => null,
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Normalize cart lines
-    |--------------------------------------------------------------------------
-    */
-
-    $cartItems = [];
-    $subtotal = 0;
-    $itemCount = 0;
-
-    if (!empty($cart['lines']['edges']) && is_array($cart['lines']['edges'])) {
-
-        $cartItems = $cart['lines']['edges'];
-
-        foreach ($cartItems as $item) {
-
-            $node = $item['node'] ?? [];
-
-            $quantity = (int) ($node['quantity'] ?? 1);
-
-            $price = (float) (
-                $node['merchandise']['price']['amount']
-                ?? 0
-            );
-
-            $subtotal += $price * $quantity;
-            $itemCount += $quantity;
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Prefer Shopify total quantity
-    |--------------------------------------------------------------------------
-    */
-
-    if (isset($cart['totalQuantity'])) {
-        $itemCount = (int) $cart['totalQuantity'];
-    }
-
-    Log::info('CART PAGE - FINAL', [
-        'cart_id' => $cartId,
-        'items' => count($cartItems),
-        'item_count' => $itemCount,
-        'subtotal' => $subtotal,
+    // Refresh session
+    session([
+        'shopify_cart_id' => $cart['id'],
+        'shopify_cart' => $cart,
     ]);
 
+    $cartItems = $cart['lines']['edges'] ?? [];
+
+    $subtotal = 0;
+    $itemCount = $cart['totalQuantity'] ?? 0;
+
+    foreach ($cartItems as $item) {
+        $node = $item['node'] ?? [];
+
+        $price = (float) (
+            $node['merchandise']['price']['amount'] ?? 0
+        );
+
+        $quantity = (int) (
+            $node['quantity'] ?? 1
+        );
+
+        $subtotal += $price * $quantity;
+    }
+
     return view('cart.index', [
-        'cart' => $cart,
         'cartItems' => $cartItems,
         'subtotal' => $subtotal,
         'itemCount' => $itemCount,
+        'checkoutUrl' => $cart['checkoutUrl'] ?? null,
     ]);
 }
 
@@ -528,177 +483,71 @@ public function cart()
 public function addToCart(Request $request)
 {
     $variantId = $request->input('variant_id');
-    $quantity = (int) ($request->input('quantity', 1));
-
-    if ($quantity < 1) {
-        $quantity = 1;
-    }
-
-    Log::info('CART ADD - START', [
-        'variant_id' => $variantId,
-        'quantity' => $quantity,
-        'existing_cart_id' => Session::get('shopify_cart_id'),
-    ]);
+    $quantity = max(1, (int) $request->input('quantity', 1));
 
     if (!$variantId) {
         return response()->json([
             'success' => false,
-            'message' => 'Variant ID required',
+            'message' => 'Variant ID required'
         ], 400);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Get existing cart ID
-    |--------------------------------------------------------------------------
-    */
+    // Get cart ID from cookie first, session second
+    $cartId = $request->cookie('shopify_cart_id')
+        ?: session('shopify_cart_id');
 
-    $cartId = Session::get('shopify_cart_id');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Create Shopify cart if one doesn't exist
-    |--------------------------------------------------------------------------
-    */
-
+    // Create cart if none exists
     if (!$cartId) {
+        $cart = $this->shopify->createCart();
 
-        try {
-
-            $cart = $this->shopify->createCart();
-
-            Log::info('CART ADD - createCart response', [
-                'cart' => $cart,
-            ]);
-
-            if (!$cart || empty($cart['id'])) {
-
-                Log::error('CART ADD - Shopify cart creation failed');
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unable to create Shopify cart',
-                ], 500);
-            }
-
-            $cartId = $cart['id'];
-
-            Session::put('shopify_cart_id', $cartId);
-            Session::put('shopify_cart', $cart);
-
-        } catch (\Throwable $e) {
-
-            Log::error('CART ADD - createCart exception', [
-                'message' => $e->getMessage(),
-            ]);
-
+        if (!$cart || empty($cart['id'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to create cart',
+                'message' => 'Unable to create Shopify cart'
             ], 500);
         }
-    }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Add merchandise to Shopify cart
-    |--------------------------------------------------------------------------
-    */
+        $cartId = $cart['id'];
+    }
 
     $lineItems = [
         [
             'quantity' => $quantity,
-            'merchandiseId' => $variantId,
-        ],
+            'merchandiseId' => $variantId
+        ]
     ];
 
-    Log::info('CART ADD - Sending to Shopify', [
-        'cart_id' => $cartId,
-        'line_items' => $lineItems,
-    ]);
-
-    try {
-
-        $cart = $this->shopify->addToCart(
-            $cartId,
-            $lineItems
-        );
-
-    } catch (\Throwable $e) {
-
-        Log::error('CART ADD - Shopify addToCart exception', [
-            'message' => $e->getMessage(),
-            'cart_id' => $cartId,
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Unable to add product to cart',
-        ], 500);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Shopify returned no cart
-    |--------------------------------------------------------------------------
-    */
+    $cart = $this->shopify->addToCart($cartId, $lineItems);
 
     if (!$cart || empty($cart['id'])) {
-
-        Log::error('CART ADD - Shopify returned invalid cart', [
-            'cart_id' => $cartId,
-            'response' => $cart,
-        ]);
-
         return response()->json([
             'success' => false,
-            'message' => 'Shopify did not return a valid cart',
+            'message' => 'Unable to add product to Shopify cart'
         ], 500);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Save latest cart
-    |--------------------------------------------------------------------------
-    */
-
-    $newCartId = $cart['id'];
-
-    Session::put('shopify_cart_id', $newCartId);
-    Session::put('shopify_cart', $cart);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Calculate count directly from lines if totalQuantity missing
-    |--------------------------------------------------------------------------
-    */
-
-    $itemCount = 0;
-
-    if (isset($cart['totalQuantity'])) {
-
-        $itemCount = (int) $cart['totalQuantity'];
-
-    } elseif (!empty($cart['lines']['edges'])) {
-
-        foreach ($cart['lines']['edges'] as $edge) {
-            $itemCount += (int) (
-                $edge['node']['quantity'] ?? 0
-            );
-        }
-    }
-
-    Log::info('CART ADD - SUCCESS', [
-        'cart_id' => $newCartId,
-        'item_count' => $itemCount,
-        'lines' => count($cart['lines']['edges'] ?? []),
+    // Keep session too
+    session([
+        'shopify_cart_id' => $cart['id'],
+        'shopify_cart' => $cart,
     ]);
 
+    // IMPORTANT: persist cart ID in browser cookie
     return response()->json([
         'success' => true,
         'message' => 'Product added to cart!',
-        'itemCount' => $itemCount,
-    ]);
+        'itemCount' => $cart['totalQuantity'] ?? 0,
+    ])->cookie(
+        'shopify_cart_id',
+        $cart['id'],
+        60 * 24 * 30, // 30 days
+        '/',
+        null,
+        true,   // secure
+        true,   // httpOnly
+        false,
+        'lax'
+    );
 }
 
 
@@ -707,74 +556,47 @@ public function addToCart(Request $request)
  */
 public function updateCart(Request $request)
 {
-    $cartId = Session::get('shopify_cart_id');
+    $cartId = $request->cookie('shopify_cart_id')
+        ?: session('shopify_cart_id');
 
     $lineId = $request->input('line_id');
-
     $quantity = (int) $request->input('quantity');
 
-    if (!$cartId) {
+    if (!$cartId || !$lineId) {
         return response()->json([
             'success' => false,
-            'message' => 'No cart found',
+            'message' => 'Cart or line not found'
         ], 400);
     }
 
-    if (!$lineId) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Cart line ID required',
-        ], 400);
+    if ($quantity <= 0) {
+        $cart = $this->shopify->removeCartLine(
+            $cartId,
+            [$lineId]
+        );
+    } else {
+        $cart = $this->shopify->updateCartLine(
+            $cartId,
+            $lineId,
+            $quantity
+        );
     }
 
-    try {
-
-        if ($quantity <= 0) {
-
-            $cart = $this->shopify->removeCartLine(
-                $cartId,
-                [$lineId]
-            );
-
-        } else {
-
-            $cart = $this->shopify->updateCartLine(
-                $cartId,
-                $lineId,
-                $quantity
-            );
-        }
-
-    } catch (\Throwable $e) {
-
-        Log::error('CART UPDATE - Exception', [
-            'message' => $e->getMessage(),
-            'cart_id' => $cartId,
-            'line_id' => $lineId,
-        ]);
-
+    if (!$cart) {
         return response()->json([
             'success' => false,
-            'message' => 'Unable to update cart',
+            'message' => 'Unable to update cart'
         ], 500);
     }
 
-    if (!$cart || empty($cart['id'])) {
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Shopify cart update failed',
-        ], 500);
-    }
-
-    Session::put('shopify_cart_id', $cart['id']);
-    Session::put('shopify_cart', $cart);
-
-    $itemCount = (int) ($cart['totalQuantity'] ?? 0);
+    session([
+        'shopify_cart_id' => $cart['id'],
+        'shopify_cart' => $cart,
+    ]);
 
     return response()->json([
         'success' => true,
-        'itemCount' => $itemCount,
+        'itemCount' => $cart['totalQuantity'] ?? 0,
     ]);
 }
 
@@ -784,59 +606,38 @@ public function updateCart(Request $request)
  */
 public function removeFromCart(Request $request)
 {
-    $cartId = Session::get('shopify_cart_id');
+    $cartId = $request->cookie('shopify_cart_id')
+        ?: session('shopify_cart_id');
 
     $lineId = $request->input('line_id');
 
-    if (!$cartId) {
+    if (!$cartId || !$lineId) {
         return response()->json([
             'success' => false,
-            'message' => 'No cart found',
+            'message' => 'Cart or line not found'
         ], 400);
     }
 
-    if (!$lineId) {
+    $cart = $this->shopify->removeCartLine(
+        $cartId,
+        [$lineId]
+    );
+
+    if (!$cart) {
         return response()->json([
             'success' => false,
-            'message' => 'Cart line ID required',
-        ], 400);
-    }
-
-    try {
-
-        $cart = $this->shopify->removeCartLine(
-            $cartId,
-            [$lineId]
-        );
-
-    } catch (\Throwable $e) {
-
-        Log::error('CART REMOVE - Exception', [
-            'message' => $e->getMessage(),
-            'cart_id' => $cartId,
-            'line_id' => $lineId,
-        ]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Unable to remove item',
+            'message' => 'Unable to remove item'
         ], 500);
     }
 
-    if (!$cart || empty($cart['id'])) {
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Shopify cart remove failed',
-        ], 500);
-    }
-
-    Session::put('shopify_cart_id', $cart['id']);
-    Session::put('shopify_cart', $cart);
+    session([
+        'shopify_cart_id' => $cart['id'],
+        'shopify_cart' => $cart,
+    ]);
 
     return response()->json([
         'success' => true,
-        'itemCount' => (int) ($cart['totalQuantity'] ?? 0),
+        'itemCount' => $cart['totalQuantity'] ?? 0,
     ]);
 }
 
@@ -905,49 +706,24 @@ public function clearCart()
 /**
  * Cart count
  */
-public function cartCount()
+public function cartCount(Request $request)
 {
-    $cartId = Session::get('shopify_cart_id');
+    $cartId = $request->cookie('shopify_cart_id');
 
-    $cart = null;
-
-    if ($cartId) {
-
-        try {
-            $cart = $this->shopify->getCart($cartId);
-        } catch (\Throwable $e) {
-
-            Log::error('CART COUNT - Exception', [
-                'message' => $e->getMessage(),
-                'cart_id' => $cartId,
-            ]);
-        }
+    if (!$cartId) {
+        $cartId = session('shopify_cart_id');
     }
 
-    if (!$cart) {
-        $cart = Session::get('shopify_cart');
+    if (!$cartId) {
+        return response()->json([
+            'count' => 0
+        ]);
     }
 
-    $count = 0;
-
-    if ($cart) {
-
-        if (isset($cart['totalQuantity'])) {
-
-            $count = (int) $cart['totalQuantity'];
-
-        } elseif (!empty($cart['lines']['edges'])) {
-
-            foreach ($cart['lines']['edges'] as $edge) {
-                $count += (int) (
-                    $edge['node']['quantity'] ?? 0
-                );
-            }
-        }
-    }
+    $cart = $this->shopify->getCart($cartId);
 
     return response()->json([
-        'count' => $count,
+        'count' => $cart['totalQuantity'] ?? 0
     ]);
 }
     
