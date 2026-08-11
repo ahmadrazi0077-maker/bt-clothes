@@ -415,26 +415,13 @@ public function home()
         return $cartId;
     }
     
-    public function cart()
-    {
-        try {
-            $cartId = $this->getCartId();
-            $cart = $this->shopify->getCart($cartId);
-            
-            if ($cart) {
-                Session::put('shopify_cart', $cart);
-            }
-            
-            return view('cart.index', [
-                'cart' => $cart,
-                'cartItems' => $cart['lines']['edges'] ?? [],
-                'total' => $cart['estimatedCost']['totalAmount']['amount'] ?? 0,
-                'subtotal' => $cart['estimatedCost']['subtotalAmount']['amount'] ?? 0,
-                'tax' => $cart['estimatedCost']['totalTaxAmount']['amount'] ?? 0,
-                'itemCount' => $cart['totalQuantity'] ?? 0
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Cart error: ' . $e->getMessage());
+   public function cart()
+{
+    try {
+        // ✅ Shopify cart ID session se lo
+        $cartId = Session::get('shopify_cart_id');
+        
+        if (!$cartId) {
             return view('cart.index', [
                 'cart' => null,
                 'cartItems' => [],
@@ -444,7 +431,35 @@ public function home()
                 'itemCount' => 0
             ]);
         }
+        
+        // ✅ Shopify se cart fetch karo
+        $cart = $this->shopify->getCart($cartId);
+        
+        if ($cart) {
+            Session::put('shopify_cart', $cart);
+        }
+        
+        return view('cart.index', [
+            'cart' => $cart,
+            'cartItems' => $cart['lines']['edges'] ?? [],
+            'total' => $cart['estimatedCost']['totalAmount']['amount'] ?? 0,
+            'subtotal' => $cart['estimatedCost']['subtotalAmount']['amount'] ?? 0,
+            'tax' => $cart['estimatedCost']['totalTaxAmount']['amount'] ?? 0,
+            'itemCount' => $cart['totalQuantity'] ?? 0
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Cart error: ' . $e->getMessage());
+        return view('cart.index', [
+            'cart' => null,
+            'cartItems' => [],
+            'total' => 0,
+            'subtotal' => 0,
+            'tax' => 0,
+            'itemCount' => 0
+        ]);
     }
+}
     
    public function addToCart(Request $request)
 {

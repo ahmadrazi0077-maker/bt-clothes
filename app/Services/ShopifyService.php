@@ -447,92 +447,71 @@ public function getProductById($id)
     return null;
 }
     
-    public function getCart($cartId)
-    {
-        $query = '
-            query GetCart($cartId: ID!) {
-                cart(id: $cartId) {
-                    id
-                    checkoutUrl
-                    createdAt
-                    updatedAt
-                    lines(first: 20) {
-                        edges {
-                            node {
-                                id
-                                quantity
-                                merchandise {
-                                    ... on ProductVariant {
+   public function getCart($cartId)
+{
+    $query = '
+        query GetCart($cartId: ID!) {
+            cart(id: $cartId) {
+                id
+                checkoutUrl
+                totalQuantity
+                lines(first: 20) {
+                    edges {
+                        node {
+                            id
+                            quantity
+                            merchandise {
+                                ... on ProductVariant {
+                                    id
+                                    title
+                                    price {
+                                        amount
+                                        currencyCode
+                                    }
+                                    product {
                                         id
                                         title
-                                        price {
-                                            amount
-                                            currencyCode
-                                        }
-                                        product {
-                                            id
-                                            title
-                                            handle
-                                            vendor
-                                            images(first: 1) {
-                                                edges {
-                                                    node {
-                                                        url
-                                                        altText
-                                                    }
+                                        handle
+                                        images(first: 1) {
+                                            edges {
+                                                node {
+                                                    url
+                                                    altText
                                                 }
                                             }
                                         }
                                     }
                                 }
-                                attributes {
-                                    key
-                                    value
-                                }
-                                cost {
-                                    subtotalAmount {
-                                        amount
-                                        currencyCode
-                                    }
-                                    totalAmount {
-                                        amount
-                                        currencyCode
-                                    }
-                                }
                             }
                         }
                     }
-                    estimatedCost {
-                        subtotalAmount {
-                            amount
-                            currencyCode
-                        }
-                        totalAmount {
-                            amount
-                            currencyCode
-                        }
-                        totalTaxAmount {
-                            amount
-                            currencyCode
-                        }
+                }
+                estimatedCost {
+                    subtotalAmount {
+                        amount
+                        currencyCode
                     }
-                    discountCodes {
-                        code
-                        applicable
+                    totalAmount {
+                        amount
+                        currencyCode
                     }
-                    totalQuantity
+                    totalTaxAmount {
+                        amount
+                        currencyCode
+                    }
                 }
             }
-        ';
-        
-        $result = $this->graphqlQuery($query, ['cartId' => $cartId]);
-        
-        if ($result && isset($result['cart'])) {
-            return $result['cart'];
         }
-        
-        return null;
+    ';
+    
+    $result = $this->graphqlQuery($query, ['cartId' => $cartId]);
+    
+    if ($result && isset($result['cart'])) {
+        return $result['cart'];
     }
+    
+    return null;
+}
     
     public function addToCart($cartId, $lineItems)
     {
