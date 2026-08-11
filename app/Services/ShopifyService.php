@@ -511,6 +511,7 @@ public function getCart($cartId)
 
 public function addToCart($cartId, $lineItems)
 {
+    
     $query = '
         mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
             cartLinesAdd(cartId: $cartId, lines: $lines) {
