@@ -418,8 +418,9 @@ public function home()
    public function cart()
 {
     try {
-        // ✅ Shopify cart ID session se lo
         $cartId = Session::get('shopify_cart_id');
+        
+        \Log::info('Cart ID from session:', ['cartId' => $cartId]);
         
         if (!$cartId) {
             return view('cart.index', [
@@ -432,13 +433,22 @@ public function home()
             ]);
         }
         
-        // ✅ Shopify se cart fetch karo
         $cart = $this->shopify->getCart($cartId);
         
-        if ($cart) {
-            Session::put('shopify_cart', $cart);
+        \Log::info('Cart from Shopify:', ['cart' => $cart]);
+        
+        if (!$cart) {
+            Session::forget('shopify_cart_id');
+            return view('cart.index', [
+                'cart' => null,
+                'cartItems' => [],
+                'total' => 0,
+                'subtotal' => 0,
+                'tax' => 0,
+                'itemCount' => 0
+            ]);
         }
-         \Log::info('Cart data:', ['cart' => $cart]);
+        
         return view('cart.index', [
             'cart' => $cart,
             'cartItems' => $cart['lines']['edges'] ?? [],
@@ -449,7 +459,7 @@ public function home()
         ]);
         
     } catch (\Exception $e) {
-        Log::error('Cart error: ' . $e->getMessage());
+        \Log::error('Cart error: ' . $e->getMessage());
         return view('cart.index', [
             'cart' => null,
             'cartItems' => [],
