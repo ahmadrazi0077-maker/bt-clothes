@@ -70,7 +70,9 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', async function () {
 
             const variantId = this.dataset.variantId;
-            const quantity = parseInt(this.dataset.quantity || '1');
+            const quantity = parseInt(
+                this.dataset.quantity || '1'
+            );
 
             if (!variantId) {
                 console.error('Variant ID missing');
@@ -86,6 +88,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Get existing Shopify Cart ID
+            |--------------------------------------------------------------------------
+            */
+
+            const existingCartId =
+                localStorage.getItem('shopify_cart_id');
+
+            console.log(
+                'Existing cart ID:',
+                existingCartId
+            );
+
             const originalText = this.innerHTML;
 
             this.disabled = true;
@@ -94,50 +110,91 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
 
                 const response = await fetch('/cart/add', {
-    method: 'POST',
 
-    credentials: 'same-origin',
+                    method: 'POST',
 
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-CSRF-TOKEN': document
-            .querySelector('meta[name="csrf-token"]')
-            .getAttribute('content'),
-        'X-Requested-With': 'XMLHttpRequest'
-    },
+                    credentials: 'same-origin',
 
-    body: JSON.stringify({
-        variant_id: variantId,
-        quantity: quantity
-    })
-});
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+
+                    body: JSON.stringify({
+
+                        variant_id: variantId,
+
+                        quantity: quantity,
+
+                        /*
+                        | Send existing cart ID
+                        */
+                        cart_id: existingCartId
+
+                    })
+
+                });
 
                 const data = await response.json();
 
-                if (!response.ok) {
+                console.log(
+                    'Shopify cart response:',
+                    data
+                );
+
+                if (!response.ok || !data.success) {
+
                     throw new Error(
-                        data.message || `HTTP ${response.status}`
+                        data.message ||
+                        `HTTP ${response.status}`
+                    );
+
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | SAVE CART ID
+                |--------------------------------------------------------------------------
+                */
+
+                if (data.cart_id) {
+
+                    localStorage.setItem(
+                        'shopify_cart_id',
+                        data.cart_id
+                    );
+
+                    console.log(
+                        'Saved Shopify Cart ID:',
+                        data.cart_id
                     );
                 }
 
-                if (!data.success) {
-                    throw new Error(
-                        data.message || 'Unable to add product'
-                    );
-                }
+                /*
+                |--------------------------------------------------------------------------
+                | Update cart count
+                |--------------------------------------------------------------------------
+                */
 
-                console.log('Added to Shopify cart:', data);
+                document
+                    .querySelectorAll('.cart-count')
+                    .forEach(function (element) {
 
-                document.querySelectorAll('.cart-count').forEach(function (el) {
-                    el.textContent = data.itemCount || 0;
-                });
+                        element.textContent =
+                            data.itemCount || 0;
+
+                    });
 
                 this.innerHTML = 'Added ✓';
 
                 setTimeout(() => {
+
                     this.innerHTML = originalText;
+
                     this.disabled = false;
+
                 }, 1500);
 
             } catch (error) {
@@ -148,13 +205,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 );
 
                 this.innerHTML = originalText;
+
                 this.disabled = false;
             }
+
         });
 
     });
 
-}); 
+});
 
 function showCartNotification(message) {
 

@@ -592,54 +592,10 @@ mutation CartLinesAdd(
         cartId: $cartId,
         lines: $lines
     ) {
+
         cart {
             id
-            checkoutUrl
             totalQuantity
-
-            lines(first: 100) {
-                edges {
-                    node {
-                        id
-                        quantity
-
-                        merchandise {
-                            ... on ProductVariant {
-                                id
-                                title
-
-                                price {
-                                    amount
-                                    currencyCode
-                                }
-
-                                product {
-                                    id
-                                    title
-                                    handle
-
-                                    featuredImage {
-                                        url
-                                        altText
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            cost {
-                subtotalAmount {
-                    amount
-                    currencyCode
-                }
-
-                totalAmount {
-                    amount
-                    currencyCode
-                }
-            }
         }
 
         userErrors {
@@ -652,25 +608,38 @@ GRAPHQL;
 
     $variables = [
         'cartId' => $cartId,
-        'lines' => $lineItems,
+        'lines' => $lineItems
     ];
 
-    $result = $this->graphqlQuery($query, $variables);
+    $result = $this->graphqlQuery(
+        $query,
+        $variables
+    );
 
     if (!$result) {
         return null;
     }
 
-    if (!empty($result['cartLinesAdd']['userErrors'])) {
+    $cartLinesAdd =
+        $result['cartLinesAdd'] ?? null;
 
-        Log::error('Shopify Cart Add Errors', [
-            'errors' => $result['cartLinesAdd']['userErrors']
-        ]);
+    if (!$cartLinesAdd) {
+        return null;
+    }
+
+    if (!empty($cartLinesAdd['userErrors'])) {
+
+        \Log::error(
+            'Shopify Cart User Errors',
+            [
+                'errors' => $cartLinesAdd['userErrors']
+            ]
+        );
 
         return null;
     }
 
-    return $result['cartLinesAdd']['cart'] ?? null;
+    return $cartLinesAdd['cart'] ?? null;
 }
 
 public function updateCartLine($cartId, $lineId, $quantity)

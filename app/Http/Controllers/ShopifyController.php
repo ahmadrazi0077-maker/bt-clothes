@@ -416,25 +416,35 @@ public function home()
     
       public function addToCart(Request $request)
 {
-    $variantId = $request->input('variant_id');
-    $quantity = (int) $request->input('quantity', 1);
-
-    if (!$variantId) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Variant ID is required'
-        ], 422);
-    }
-
-    $quantity = max(1, min($quantity, 99));
-
     try {
+        $variantId = $request->input('variant_id');
+        $quantity = (int) $request->input('quantity', 1);
+        $cartId = $request->input('cart_id');
 
-        $cartId = Session::get('shopify_cart_id');
+        if (!$variantId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Variant ID required'
+            ], 400);
+        }
+
+        if ($quantity < 1) {
+            $quantity = 1;
+        }
 
         /*
         |--------------------------------------------------------------------------
-        | Create Shopify cart if required
+        | STEP 1: Get existing cart ID
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$cartId) {
+            $cartId = Session::get('shopify_cart_id');
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2: Create cart ONLY if no existing cart
         |--------------------------------------------------------------------------
         */
 
@@ -442,7 +452,7 @@ public function home()
 
             $cart = $this->shopify->createCart();
 
-            if (!$cart || empty($cart['id'])) {
+            if (!$cart || !isset($cart['id'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unable to create Shopify cart'
@@ -456,67 +466,65 @@ public function home()
 
         /*
         |--------------------------------------------------------------------------
-        | Add product
+        | STEP 3: Add product to EXISTING cart
         |--------------------------------------------------------------------------
         */
 
+        $lineItems = [
+            [
+                'quantity' => $quantity,
+                'merchandiseId' => $variantId
+            ]
+        ];
+
         $cart = $this->shopify->addToCart(
             $cartId,
-            [
-                [
-                    'merchandiseId' => $variantId,
-                    'quantity' => $quantity,
-                ]
-            ]
+            $lineItems
         );
 
         if (!$cart) {
-
-            // Cart may have expired.
-            // Create a new cart and retry.
-
-            Session::forget('shopify_cart_id');
-            Session::forget('shopify_cart');
-
-            $newCart = $this->shopify->createCart([
-                [
-                    'merchandiseId' => $variantId,
-                    'quantity' => $quantity,
-                ]
-            ]);
-
-            if (!$newCart) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unable to add product to Shopify cart'
-                ], 500);
-            }
-
-            $cart = $newCart;
-            $cartId = $cart['id'];
-
-            Session::put('shopify_cart_id', $cartId);
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to add product to Shopify cart'
+            ], 500);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 4: Save cart ID in Laravel session too
+        |--------------------------------------------------------------------------
+        */
+
+        Session::put('shopify_cart_id', $cartId);
         Session::put('shopify_cart', $cart);
+
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 5: Return SAME cart ID to browser
+        |--------------------------------------------------------------------------
+        */
 
         return response()->json([
             'success' => true,
             'message' => 'Product added to cart',
-            'cart_id' => $cart['id'],
-            'itemCount' => $cart['totalQuantity'] ?? 0,
+            'cart_id' => $cartId,
+            'itemCount' => $cart['totalQuantity'] ?? 0
         ]);
 
     } catch (\Throwable $e) {
 
-        Log::error('Shopify Add To Cart Error', [
+        \Log::error('Shopify Add To Cart Error', [
             'message' => $e->getMessage(),
-            'variant_id' => $variantId,
+            'variant_id' => $request->input('variant_id'),
+            'cart_id' => $request->input('cart_id')
         ]);
 
         return response()->json([
             'success' => false,
-            'message' => 'Unable to add product to cart'
+            'message' => 'Unable to add product to cart',
+            'error' => config('app.debug')
+                ? $e->getMessage()
+                : null
         ], 500);
     }
 }
