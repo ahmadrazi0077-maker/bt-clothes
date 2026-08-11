@@ -61,10 +61,10 @@ Route::get('/cart/count', [ShopifyController::class, 'cartCount'])
 
 
 
-Route::get('/shopify/cart/add', [
+Route::post('/cart/add', [
     ShopifyController::class,
-    'addToShopifyCart'
-])->name('shopify.cart.add');
+    'addToCart'
+])->name('cart.add');
 
 // ============================================
 // API ROUTES

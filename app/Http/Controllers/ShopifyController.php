@@ -414,34 +414,106 @@ public function home()
         return $cartId;
     }
     
-      public function addToShopifyCart(Request $request)
+      public function addToCart(Request $request)
 {
-    $variantId = $request->query('variant_id');
-    $quantity = max(1, (int) $request->query('quantity', 1));
+    $variantId = $request->input('variant_id');
+    $quantity = max(
+        1,
+        (int) $request->input('quantity', 1)
+    );
 
     if (!$variantId) {
-        abort(400, 'Shopify variant ID is required.');
+        return response()->json([
+            'success' => false,
+            'message' => 'Variant ID is required.'
+        ], 400);
     }
 
-    // Convert Shopify GraphQL GID to numeric ID
-    if (str_starts_with(
+    /*
+    |--------------------------------------------------------------------------
+    | Shopify GraphQL Variant ID
+    |--------------------------------------------------------------------------
+    */
+
+    if (!str_starts_with(
         $variantId,
         'gid://shopify/ProductVariant/'
     )) {
-        $variantId = str_replace(
-            'gid://shopify/ProductVariant/',
-            '',
-            $variantId
-        );
+        $variantId =
+            'gid://shopify/ProductVariant/' .
+            $variantId;
     }
 
-    $cartUrl =
-        'https://shop.btclothes.com/cart/' .
-        $variantId .
-        ':' .
-        $quantity;
+    /*
+    |--------------------------------------------------------------------------
+    | Get existing Shopify cart
+    |--------------------------------------------------------------------------
+    */
 
-    return redirect()->away($cartUrl);
+    $cartId = session('shopify_cart_id');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Shopify cart if necessary
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$cartId) {
+
+        $cart = $this->shopify->createCart([
+            [
+                'merchandiseId' => $variantId,
+                'quantity' => $quantity
+            ]
+        ]);
+
+        if (!$cart) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to create Shopify cart.'
+            ], 500);
+        }
+
+        session([
+            'shopify_cart_id' => $cart['id'],
+            'shopify_cart' => $cart
+        ]);
+
+    } else {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Add item to existing Shopify cart
+        |--------------------------------------------------------------------------
+        */
+
+        $cart = $this->shopify->addToCart(
+            $cartId,
+            [
+                [
+                    'merchandiseId' => $variantId,
+                    'quantity' => $quantity
+                ]
+            ]
+        );
+
+        if (!$cart) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to add product to Shopify cart.'
+            ], 500);
+        }
+
+        session([
+            'shopify_cart' => $cart
+        ]);
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Product added to cart.',
+        'itemCount' => $cart['totalQuantity'] ?? 0
+    ]);
 }
 
 public function cartCount()

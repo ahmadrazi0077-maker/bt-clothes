@@ -453,15 +453,6 @@ mutation CartCreate($input: CartInput!) {
                                         url
                                         altText
                                     }
-
-                                    images(first: 1) {
-                                        edges {
-                                            node {
-                                                url
-                                                altText
-                                            }
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -502,21 +493,15 @@ GRAPHQL;
         return null;
     }
 
-    $cartCreate = $result['cartCreate'] ?? null;
-
-    if (!$cartCreate) {
-        return null;
-    }
-
-    if (!empty($cartCreate['userErrors'])) {
-        \Log::error('Shopify Cart Create User Errors', [
-            'errors' => $cartCreate['userErrors']
+    if (!empty($result['cartCreate']['userErrors'])) {
+        \Log::error('Shopify cartCreate errors', [
+            'errors' => $result['cartCreate']['userErrors']
         ]);
 
         return null;
     }
 
-    return $cartCreate['cart'] ?? null;
+    return $result['cartCreate']['cart'] ?? null;
 }
 
 public function getCart($cartId)
@@ -584,43 +569,107 @@ query GetCart($cartId: ID!) {
 }
 GRAPHQL;
 
-    $result = $this->graphqlQuery($query, [
-        'cartId' => $cartId
-    ]);
+    $result = $this->graphqlQuery(
+        $query,
+        ['cartId' => $cartId]
+    );
 
-    if ($result && isset($result['cart'])) {
-        return $result['cart'];
+    if (!$result) {
+        return null;
     }
 
-    return null;
+    return $result['cart'] ?? null;
 }
 
 public function addToCart($cartId, $lineItems)
 {
-    $query = '
-        mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
-            cartLinesAdd(cartId: $cartId, lines: $lines) {
-                cart {
-                    id
-                    totalQuantity
-                    checkoutUrl
+    $query = <<<'GRAPHQL'
+mutation CartLinesAdd(
+    $cartId: ID!,
+    $lines: [CartLineInput!]!
+) {
+    cartLinesAdd(
+        cartId: $cartId,
+        lines: $lines
+    ) {
+        cart {
+            id
+            checkoutUrl
+            totalQuantity
+
+            lines(first: 100) {
+                edges {
+                    node {
+                        id
+                        quantity
+
+                        merchandise {
+                            ... on ProductVariant {
+                                id
+                                title
+
+                                price {
+                                    amount
+                                    currencyCode
+                                }
+
+                                product {
+                                    id
+                                    title
+                                    handle
+
+                                    featuredImage {
+                                        url
+                                        altText
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            cost {
+                subtotalAmount {
+                    amount
+                    currencyCode
+                }
+
+                totalAmount {
+                    amount
+                    currencyCode
                 }
             }
         }
-    ';
-    
+
+        userErrors {
+            field
+            message
+        }
+    }
+}
+GRAPHQL;
+
     $variables = [
         'cartId' => $cartId,
         'lines' => $lineItems
     ];
-    
+
     $result = $this->graphqlQuery($query, $variables);
-    
-    if ($result && isset($result['cartLinesAdd']['cart'])) {
-        return $result['cartLinesAdd']['cart'];
+
+    if (!$result) {
+        return null;
     }
-    
-    return null;
+
+    if (!empty($result['cartLinesAdd']['userErrors'])) {
+        \Log::error('Shopify cartLinesAdd errors', [
+            'errors' => $result['cartLinesAdd']['userErrors']
+        ]);
+
+        return null;
+    }
+
+    return $result['cartLinesAdd']['cart'] ?? null;
 }
 
 public function updateCartLine($cartId, $lineId, $quantity)

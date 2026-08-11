@@ -67,11 +67,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.add-to-cart-btn').forEach(function (button) {
 
-        button.addEventListener('click', function (e) {
+        button.addEventListener('click', async function (event) {
 
-            e.preventDefault();
+            event.preventDefault();
 
             const variantId = this.dataset.variantId;
+
             const quantity = parseInt(
                 this.dataset.quantity || '1'
             );
@@ -81,19 +82,145 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            const url =
-                '/shopify/cart/add' +
-                '?variant_id=' +
-                encodeURIComponent(variantId) +
-                '&quantity=' +
-                encodeURIComponent(quantity);
+            const csrfToken = document.querySelector(
+                'meta[name="csrf-token"]'
+            )?.getAttribute('content');
 
-            window.location.href = url;
+            if (!csrfToken) {
+                alert('Security token missing. Please refresh the page.');
+                return;
+            }
+
+            const originalText = this.innerHTML;
+
+            this.disabled = true;
+            this.innerHTML = 'Adding...';
+
+            try {
+
+                const response = await fetch('/cart/add', {
+
+                    method: 'POST',
+
+                    credentials: 'same-origin',
+
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+
+                    body: JSON.stringify({
+                        variant_id: variantId,
+                        quantity: quantity
+                    })
+
+                });
+
+                const data = await response.json();
+
+                console.log('Cart response:', data);
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message ||
+                        'Unable to add product to cart.'
+                    );
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | SUCCESS
+                |--------------------------------------------------------------------------
+                |
+                | IMPORTANT:
+                | Do NOT redirect.
+                |
+                */
+
+                this.innerHTML = '✓ Added';
+
+                /*
+                | Update cart counter
+                */
+
+                document.querySelectorAll(
+                    '[data-cart-count]'
+                ).forEach(function (counter) {
+
+                    counter.textContent =
+                        data.itemCount || 0;
+
+                });
+
+                /*
+                | Optional small notification
+                */
+
+                showCartNotification(
+                    'Product added to cart!'
+                );
+
+                /*
+                | Restore button
+                */
+
+                setTimeout(() => {
+                    this.disabled = false;
+                    this.innerHTML = originalText;
+                }, 1500);
+
+            } catch (error) {
+
+                console.error(
+                    'Add to Shopify cart error:',
+                    error
+                );
+
+                alert(error.message);
+
+                this.disabled = false;
+                this.innerHTML = originalText;
+            }
+
         });
 
     });
 
 });
+
+function showCartNotification(message) {
+
+    let notification =
+        document.getElementById('cart-notification');
+
+    if (!notification) {
+
+        notification = document.createElement('div');
+
+        notification.id = 'cart-notification';
+
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '99999';
+        notification.style.padding = '14px 20px';
+        notification.style.background = '#111';
+        notification.style.color = '#fff';
+        notification.style.borderRadius = '8px';
+        notification.style.boxShadow =
+            '0 10px 30px rgba(0,0,0,.2)';
+
+        document.body.appendChild(notification);
+    }
+
+    notification.textContent = message;
+    notification.style.display = 'block';
+
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 2000);
+}
 </script>
     
     @stack('scripts')
