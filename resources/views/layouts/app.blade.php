@@ -67,91 +67,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.add-to-cart-btn').forEach(function (button) {
 
-        button.addEventListener('click', async function (event) {
+        button.addEventListener('click', function (e) {
 
-            event.preventDefault();
+            e.preventDefault();
 
             const variantId = this.dataset.variantId;
-            const quantity = parseInt(this.dataset.quantity || '1');
+            const quantity = parseInt(
+                this.dataset.quantity || '1'
+            );
 
             if (!variantId) {
-                console.error('Shopify variant ID missing');
                 alert('Product variant is not available.');
                 return;
             }
 
-            const csrfMeta = document.querySelector(
-                'meta[name="csrf-token"]'
-            );
+            const url =
+                '/shopify/cart/add' +
+                '?variant_id=' +
+                encodeURIComponent(variantId) +
+                '&quantity=' +
+                encodeURIComponent(quantity);
 
-            if (!csrfMeta) {
-                console.error('CSRF meta tag not found');
-                alert('Security token missing. Please refresh the page.');
-                return;
-            }
-
-            const csrfToken = csrfMeta.getAttribute('content');
-
-            const originalText = this.innerHTML;
-
-            this.disabled = true;
-            this.innerHTML = 'Adding...';
-
-            try {
-
-                const response = await fetch('/shopify/cart/add', {
-
-                    method: 'POST',
-
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-
-                    credentials: 'same-origin',
-
-                    body: JSON.stringify({
-                        variant_id: variantId,
-                        quantity: quantity
-                    })
-
-                });
-
-                const data = await response.json();
-
-                console.log('Add to cart response:', data);
-
-                if (!response.ok) {
-                    throw new Error(
-                        data.message ||
-                        'Unable to add product to cart.'
-                    );
-                }
-
-                if (!data.success) {
-                    throw new Error(
-                        data.message ||
-                        'Unable to add product to cart.'
-                    );
-                }
-
-                // Redirect to Shopify cart
-                window.location.href = data.cart_url;
-
-            } catch (error) {
-
-                console.error(
-                    'Add to Shopify cart error:',
-                    error
-                );
-
-                alert(error.message);
-
-                this.disabled = false;
-                this.innerHTML = originalText;
-            }
-
+            window.location.href = url;
         });
 
     });

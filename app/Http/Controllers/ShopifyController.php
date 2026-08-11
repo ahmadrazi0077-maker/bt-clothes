@@ -416,19 +416,14 @@ public function home()
     
       public function addToShopifyCart(Request $request)
 {
-    $variantId = $request->input('variant_id');
-    $quantity = max(
-        1,
-        (int) $request->input('quantity', 1)
-    );
+    $variantId = $request->query('variant_id');
+    $quantity = max(1, (int) $request->query('quantity', 1));
 
     if (!$variantId) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Shopify variant ID is required.'
-        ], 400);
+        abort(400, 'Shopify variant ID is required.');
     }
 
+    // Convert Shopify GraphQL GID to numeric ID
     if (str_starts_with(
         $variantId,
         'gid://shopify/ProductVariant/'
@@ -446,12 +441,7 @@ public function home()
         ':' .
         $quantity;
 
-    return response()->json([
-        'success' => true,
-        'cart_url' => $cartUrl,
-        'variant_id' => $variantId,
-        'quantity' => $quantity
-    ]);
+    return redirect()->away($cartUrl);
 }
 
 public function cartCount()
