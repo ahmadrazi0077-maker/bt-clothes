@@ -100,12 +100,21 @@
 </a>
 <!-- In header actions -->
 
-                <a href="https://shop.btclothes.com/cart" class="text-xl hover:text-gray-600 transition relative">
+                <a
+    href="javascript:void(0)"
+    onclick="openShopifyCart()"
+    class="relative"
+>
     🛒
-    <span class="absolute -top-2 -right-3 bg-gray-900 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center cart-count">
+
+    <span
+        id="cart-count"
+        data-cart-count
+        class="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+    >
         0
     </span>
-</a> 
+</a>
                 <button id="mobileToggle" class="lg:hidden text-2xl hover:text-gray-600 transition" aria-label="Menu">
                     ☰
                 </button>

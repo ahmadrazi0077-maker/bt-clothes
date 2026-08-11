@@ -63,92 +63,150 @@
     <!-- ✅ All JavaScript -->
   
         <<script>
-window.addToShopifyCart = async function(variantId, quantity = 1) {
+(function () {
+
+    window.BTCart = {
+
+        getItems() {
+            try {
+                return JSON.parse(
+                    localStorage.getItem('bt_cart') || '[]'
+                );
+            } catch (e) {
+                return [];
+            }
+        },
+
+        saveItems(items) {
+            localStorage.setItem(
+                'bt_cart',
+                JSON.stringify(items)
+            );
+        },
+
+        add(variantId, quantity = 1) {
+
+            let items = this.getItems();
+
+            const existing = items.find(
+                item => item.variant_id === variantId
+            );
+
+            if (existing) {
+                existing.quantity += quantity;
+            } else {
+                items.push({
+                    variant_id: variantId,
+                    quantity: quantity
+                });
+            }
+
+            this.saveItems(items);
+
+            this.updateCount();
+
+            console.log('BT Cart:', items);
+
+            return items;
+        },
+
+        updateCount() {
+
+            const items = this.getItems();
+
+            const count = items.reduce(
+                (total, item) => total + item.quantity,
+                0
+            );
+
+            document.querySelectorAll(
+                '[data-cart-count]'
+            ).forEach(el => {
+                el.textContent = count;
+            });
+
+            // Optional old cart count element
+            document.querySelectorAll(
+                '#cart-count'
+            ).forEach(el => {
+                el.textContent = count;
+            });
+
+            return count;
+        },
+
+        clear() {
+            localStorage.removeItem('bt_cart');
+            this.updateCount();
+        }
+
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        BTCart.updateCount();
+    });
+
+})();
+</script>
+<script>
+
+function addToCart(variantId, quantity = 1) {
 
     console.log('ADD TO CART CLICKED');
     console.log('Variant ID:', variantId);
 
-    try {
-
-        const existingCartId =
-            localStorage.getItem('shopify_cart_id');
-
-        console.log('Existing cart ID:', existingCartId);
-
-        const csrfElement =
-            document.querySelector('meta[name="csrf-token"]');
-
-        if (!csrfElement) {
-            throw new Error('CSRF token not found');
-        }
-
-        const response = await fetch('/cart/add', {
-
-            method: 'POST',
-
-            credentials: 'same-origin',
-
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': csrfElement.getAttribute('content'),
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-
-            body: JSON.stringify({
-                variant_id: variantId,
-                quantity: quantity,
-                cart_id: existingCartId
-            })
-        });
-
-        console.log('HTTP Status:', response.status);
-
-        const data = await response.json();
-
-        console.log('Shopify cart response:', data);
-
-        if (!response.ok || !data.success) {
-            throw new Error(
-                data.message || 'Unable to add product'
-            );
-        }
-
-        if (data.cart_id) {
-
-            localStorage.setItem(
-                'shopify_cart_id',
-                data.cart_id
-            );
-
-            console.log(
-                'Saved cart ID:',
-                data.cart_id
-            );
-        }
-
-        if (typeof updateCartCount === 'function') {
-            updateCartCount(data.itemCount);
-        }
-
-        if (typeof showToast === 'function') {
-            showToast('Product added to cart!');
-        } else {
-            alert('Product added to cart!');
-        }
-
-    } catch (error) {
-
-        console.error(
-            'Add to Shopify cart error:',
-            error
-        );
-
-        alert(
-            error.message || 'Unable to add product'
-        );
+    if (!variantId) {
+        console.error('Variant ID missing');
+        return;
     }
-};
+
+    const items = BTCart.add(
+        variantId,
+        quantity
+    );
+
+    console.log('Cart items:', items);
+
+    showToast('Product added to cart!');
+
+    // IMPORTANT:
+    // Do NOT redirect to Shopify here.
+}
+
+</script>
+<script>
+
+function openShopifyCart() {
+
+    const items = BTCart.getItems();
+
+    console.log('Opening Shopify cart');
+    console.log('Items:', items);
+
+    if (!items.length) {
+        window.location.href =
+            'https://shop.btclothes.com/cart';
+
+        return;
+    }
+
+    const cartItems = items
+        .map(item => {
+            return `${item.variant_id.replace('gid://shopify/ProductVariant/', '')}:${item.quantity}`;
+        })
+        .join(',');
+
+    const shopifyCartUrl =
+        `https://shop.btclothes.com/cart/${cartItems}`;
+
+    console.log(
+        'Shopify Cart URL:',
+        shopifyCartUrl
+    );
+
+    window.location.href = shopifyCartUrl;
+}
+
 </script>
     
     @stack('scripts')
