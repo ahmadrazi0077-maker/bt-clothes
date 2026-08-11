@@ -61,96 +61,83 @@
     @include('components.quick-add-modal')
     
     <!-- ✅ All JavaScript -->
-    <script>
-        function addToCart(button) {
-    const variantId = button.dataset.variantId;
-    
-    if (!variantId) {
-        showToast('❌ Please select a variant');
-        return;
-    }
-    
-    const originalText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '⏳ Adding...';
-    button.classList.add('opacity-70');
-    
-    fetch('/cart/add', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-            variant_id: variantId,
-            quantity: 1
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            button.innerHTML = '✅ Added!';
-            button.classList.add('bg-green-600');
-            button.classList.remove('bg-gray-900');
-            
-            // ✅ Update cart count
-            updateCartCount();
-            
-            // ✅ Show toast only - NO REDIRECT
-            showToast('🛒 Product added to cart!');
-            
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70', 'bg-green-600');
-                button.classList.add('bg-gray-900');
-            }, 2000);
-            
-        } else {
-            button.innerHTML = '❌ Failed';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70');
-            }, 2000);
-            showToast('❌ ' + (data.message || 'Error adding to cart'));
-        }
-    })
-    .catch(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-        button.classList.remove('opacity-70');
-        showToast('❌ Error adding to cart');
-    });
-}
+  
+        <script>
+document.addEventListener('DOMContentLoaded', function () {
 
-function updateCartCount() {
-    fetch('/cart/count')
-        .then(response => response.json())
-        .then(data => {
-            const el = document.querySelector('.cart-count');
-            if (el) {
-                el.textContent = data.count || 0;
+    document.querySelectorAll('.add-to-cart-btn').forEach(function (button) {
+
+        button.addEventListener('click', async function () {
+
+            const variantId = this.dataset.variantId;
+            const quantity = parseInt(this.dataset.quantity || '1');
+
+            if (!variantId) {
+                alert('Product variant not available.');
+                return;
             }
-        })
-        .catch(() => {});
-}
 
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toast-message');
-    if (toast && toastMessage) {
-        toastMessage.textContent = message;
-        toast.classList.add('show');
-        clearTimeout(toast._timeout);
-        toast._timeout = setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
-    }
-}
+            const originalText = this.innerHTML;
 
+            this.disabled = true;
+            this.innerHTML = 'Adding...';
 
-    </script>
+            try {
+
+                const response = await fetch('/shopify/cart/add', {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN':
+                            document.querySelector(
+                                'meta[name="csrf-token"]'
+                            ).getAttribute('content')
+                    },
+
+                    body: JSON.stringify({
+                        variant_id: variantId,
+                        quantity: quantity
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message || 'Unable to add product.'
+                    );
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Redirect to Shopify Cart
+                |--------------------------------------------------------------------------
+                */
+
+                window.location.href = data.cart_url;
+
+            } catch (error) {
+
+                console.error('Add to Shopify cart error:', error);
+
+                alert(
+                    error.message ||
+                    'Something went wrong while adding the product.'
+                );
+
+                this.disabled = false;
+                this.innerHTML = originalText;
+            }
+
+        });
+
+    });
+
+});
+</script>
+
     
     @stack('scripts')
 </body>

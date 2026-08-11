@@ -414,46 +414,56 @@ public function home()
         return $cartId;
     }
     
-      public function addToCart(Request $request)
+      use Illuminate\Http\Request;
+
+public function addToShopifyCart(Request $request)
 {
-    $variantId = $request->variant_id;
-    $quantity = $request->quantity ?? 1;
-    
+    $variantId = $request->input('variant_id');
+    $quantity = max(1, (int) $request->input('quantity', 1));
+
     if (!$variantId) {
-        return response()->json(['success' => false, 'message' => 'Variant ID required'], 400);
-    }
-    
-    // Get or create cart
-    $cartId = Session::get('shopify_cart_id');
-    
-    if (!$cartId) {
-        $cart = $this->shopify->createCart();
-        if ($cart) {
-            $cartId = $cart['id'];
-            Session::put('shopify_cart_id', $cartId);
-            Session::put('shopify_cart', $cart);
-        }
-    }
-    
-    if (!$cartId) {
-        return response()->json(['success' => false, 'message' => 'Unable to create cart'], 500);
-    }
-    
-    // Add to cart
-    $cart = $this->shopify->addToCart($cartId, [
-        ['quantity' => $quantity, 'merchandiseId' => $variantId]
-    ]);
-    
-    if ($cart) {
-        Session::put('shopify_cart', $cart);
         return response()->json([
-            'success' => true,
-            'message' => 'Product added to cart!',
-            'itemCount' => $cart['totalQuantity'] ?? 0
-        ]);
+            'success' => false,
+            'message' => 'Shopify variant ID is required.'
+        ], 400);
     }
-    
-    return response()->json(['success' => false, 'message' => 'Unable to add to cart'], 500);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Convert Shopify GraphQL ID to numeric Variant ID
+    |--------------------------------------------------------------------------
+    |
+    | Example:
+    | gid://shopify/ProductVariant/123456789
+    |
+    | becomes:
+    | 123456789
+    |
+    */
+
+    if (str_starts_with($variantId, 'gid://shopify/ProductVariant/')) {
+        $variantId = str_replace(
+            'gid://shopify/ProductVariant/',
+            '',
+            $variantId
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Build Shopify Cart Permalink
+    |--------------------------------------------------------------------------
+    */
+
+    $cartUrl = 'https://shop.btclothes.com/cart/' .
+        $variantId . ':' . $quantity;
+
+    return response()->json([
+        'success' => true,
+        'cart_url' => $cartUrl,
+        'variant_id' => $variantId,
+        'quantity' => $quantity
+    ]);
 }
 
 public function cartCount()
