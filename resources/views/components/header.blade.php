@@ -106,7 +106,7 @@
         0
     </span>
 </a> 
-                <button id="mobileToggle" class="lg:hidden text-2xl hover:text-gray-600 transition" aria-label="Menu">
+    <button id="mobileToggle" class="lg:hidden text-2xl hover:text-gray-600 transition" aria-label="Menu">
                     ☰
                 </button>
             </div>
