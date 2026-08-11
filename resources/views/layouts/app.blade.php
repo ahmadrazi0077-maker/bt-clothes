@@ -73,6 +73,7 @@
     const originalText = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '⏳ Adding...';
+    button.classList.add('opacity-70');
     
     fetch('/cart/add', {
         method: 'POST',
@@ -88,29 +89,39 @@
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // ✅ Update button state
             button.innerHTML = '✅ Added!';
             button.classList.add('bg-green-600');
+            button.classList.remove('bg-gray-900');
             
-            // ✅ Redirect to Shopify cart
+            // ✅ Update cart count
+            updateCartCount();
+            
+            // ✅ Show toast
             showToast('🛒 Product added to cart!');
+            
+            // ✅ Reset button after 2 seconds
             setTimeout(() => {
-                window.location.href = 'https://shop.btclothes.com/cart';
-            }, 800);
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.classList.remove('opacity-70', 'bg-green-600');
+                button.classList.add('bg-gray-900');
+            }, 2000);
+            
         } else {
             button.innerHTML = '❌ Failed';
             setTimeout(() => {
-                button.innerHTML = '🛒 Add to Cart';
+                button.innerHTML = originalText;
                 button.disabled = false;
+                button.classList.remove('opacity-70');
             }, 2000);
             showToast('❌ ' + (data.message || 'Error adding to cart'));
         }
     })
     .catch(() => {
-        button.innerHTML = '❌ Failed';
-        setTimeout(() => {
-            button.innerHTML = '🛒 Add to Cart';
-            button.disabled = false;
-        }, 2000);
+        button.innerHTML = originalText;
+        button.disabled = false;
+        button.classList.remove('opacity-70');
         showToast('❌ Error adding to cart');
     });
 }
@@ -120,7 +131,9 @@ function updateCartCount() {
         .then(response => response.json())
         .then(data => {
             const el = document.querySelector('.cart-count');
-            if (el) el.textContent = data.count || 0;
+            if (el) {
+                el.textContent = data.count || 0;
+            }
         })
         .catch(() => {});
 }
@@ -137,6 +150,8 @@ function showToast(message) {
         }, 3000);
     }
 }
+
+
     </script>
     
     @stack('scripts')
