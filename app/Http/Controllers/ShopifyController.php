@@ -451,7 +451,7 @@ public function home()
         $variantId = $request->variant_id;
         $quantity = $request->quantity ?? 1;
         
-        \Log::info('Add to cart:', ['variant' => $variantId, 'quantity' => $quantity]);
+        \Log::info('Add to cart request:', $request->all());
         
         if (!$variantId) {
             return response()->json([
@@ -460,7 +460,6 @@ public function home()
             ], 400);
         }
         
-        // Get or create cart
         $cartId = Session::get('shopify_cart_id');
         
         if (!$cartId) {
@@ -479,7 +478,6 @@ public function home()
             ], 500);
         }
         
-        // Add to cart
         $lineItems = [
             [
                 'quantity' => $quantity,

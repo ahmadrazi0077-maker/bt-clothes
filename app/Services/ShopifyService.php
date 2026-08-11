@@ -418,89 +418,34 @@ public function getProductById($id)
     // CART METHODS
     // ============================================
     
-    public function createCart($lineItems = [])
-    {
-        $query = '
-            mutation CartCreate($input: CartInput!) {
-                cartCreate(input: $input) {
-                    cart {
-                        id
-                        checkoutUrl
-                        createdAt
-                        updatedAt
-                        lines(first: 10) {
-                            edges {
-                                node {
-                                    id
-                                    quantity
-                                    merchandise {
-                                        ... on ProductVariant {
-                                            id
-                                            title
-                                            price {
-                                                amount
-                                                currencyCode
-                                            }
-                                            product {
-                                                id
-                                                title
-                                                handle
-                                                images(first: 1) {
-                                                    edges {
-                                                        node {
-                                                            url
-                                                            altText
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        estimatedCost {
-                            subtotalAmount {
-                                amount
-                                currencyCode
-                            }
-                            totalAmount {
-                                amount
-                                currencyCode
-                            }
-                            totalTaxAmount {
-                                amount
-                                currencyCode
-                            }
-                        }
-                        discountCodes {
-                            code
-                            applicable
-                        }
-                        totalQuantity
-                    }
-                    userErrors {
-                        field
-                        message
-                    }
+   public function createCart($lineItems = [])
+{
+    $query = '
+        mutation CartCreate($input: CartInput!) {
+            cartCreate(input: $input) {
+                cart {
+                    id
+                    checkoutUrl
+                    totalQuantity
                 }
             }
-        ';
-        
-        $variables = [
-            'input' => [
-                'lines' => $lineItems
-            ]
-        ];
-        
-        $result = $this->graphqlQuery($query, $variables);
-        
-        if ($result && isset($result['cartCreate']['cart'])) {
-            return $result['cartCreate']['cart'];
         }
-        
-        return null;
+    ';
+    
+    $variables = [
+        'input' => [
+            'lines' => $lineItems
+        ]
+    ];
+    
+    $result = $this->graphqlQuery($query, $variables);
+    
+    if ($result && isset($result['cartCreate']['cart'])) {
+        return $result['cartCreate']['cart'];
     }
+    
+    return null;
+}
     
     public function getCart($cartId)
     {
