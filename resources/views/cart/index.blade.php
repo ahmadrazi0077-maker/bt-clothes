@@ -6,6 +6,17 @@
 <div class="container mx-auto px-4 py-12">
     <h1 class="text-3xl font-light mb-8">Shopping Cart</h1>
     
+    {{-- DEBUG --}}
+    <div class="bg-yellow-100 p-4 mb-4 rounded">
+        <p><strong>Debug:</strong> {{ $debug ?? 'No debug' }}</p>
+        <p><strong>Cart ID:</strong> {{ session('shopify_cart_id') ?? 'No cart' }}</p>
+        <p><strong>Cart Exists:</strong> {{ isset($cart) ? 'Yes' : 'No' }}</p>
+        @if(isset($cart))
+            <p><strong>Total Quantity:</strong> {{ $cart['totalQuantity'] ?? 0 }}</p>
+            <p><strong>Items Count:</strong> {{ count($cart['lines']['edges'] ?? []) }}</p>
+        @endif
+    </div>
+    
     @if(isset($cart) && $cart && isset($cart['lines']['edges']) && count($cart['lines']['edges']) > 0)
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             @foreach($cart['lines']['edges'] as $item)
