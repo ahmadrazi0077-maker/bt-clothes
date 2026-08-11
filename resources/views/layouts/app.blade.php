@@ -94,9 +94,8 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
 
                 const response = await fetch(
-                    '{{ route("/cart/add") }}',
-                    {
-                        method: 'POST',
+                    const response = await fetch('/cart/add', {
+    method: 'POST',
 
                         credentials: 'same-origin',
 
