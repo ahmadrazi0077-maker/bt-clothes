@@ -11,17 +11,7 @@
             {{ $itemCount ?? 0 }} items
         </span>
     </div>
-    @if(isset($cart) && $cart)
-    <p>Debug: Cart ID: {{ $cart['id'] }}</p>
-    <p>Debug: Items: {{ count($cart['lines']['edges'] ?? []) }}</p>
     
-    @if(count($cart['lines']['edges'] ?? []) > 0)
-        <!-- Cart items loop -->
-    @else
-        <p>No items found in cart</p>
-    @endif
-@endif 
-
     @if(isset($cart) && $cart && ($itemCount ?? 0) > 0)
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Cart Items -->

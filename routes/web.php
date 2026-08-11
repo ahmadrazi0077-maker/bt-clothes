@@ -117,9 +117,7 @@ Route::get('/product/{handle}', [ShopifyController::class, 'product'])->name('pr
 // ============================================
 // PAGES
 // ============================================
-Route::get('/test-layout', function () {
-    return view('layouts.app');
-});
+
 Route::get('/pages/{page}', function ($page) {
     $allowed = ['about', 'contact', 'faq', 'shipping', 'returns', 'size-guide', 'privacy', 'terms', 'cookies'];
     if (in_array($page, $allowed)) {
