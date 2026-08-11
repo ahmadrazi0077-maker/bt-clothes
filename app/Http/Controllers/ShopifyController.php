@@ -414,7 +414,6 @@ public function home()
         return $cartId;
     }
     
-      use Illuminate\Http\Request;
 
 public function addToShopifyCart(Request $request)
 {
