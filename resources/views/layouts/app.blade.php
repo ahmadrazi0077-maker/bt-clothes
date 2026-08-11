@@ -62,190 +62,63 @@
     
     <!-- ✅ All JavaScript -->
   
-        <script>
-document.addEventListener('DOMContentLoaded', function () {
+        <<script>
+async function addToShopifyCart(variantId, quantity = 1) {
+    try {
+        const existingCartId = localStorage.getItem('shopify_cart_id');
 
-    document.querySelectorAll('.add-to-cart-btn').forEach(function (button) {
+        console.log('Existing cart ID:', existingCartId);
 
-        button.addEventListener('click', async function () {
-
-            const variantId = this.dataset.variantId;
-            const quantity = parseInt(
-                this.dataset.quantity || '1'
-            );
-
-            if (!variantId) {
-                console.error('Variant ID missing');
-                return;
-            }
-
-            const csrfToken = document
-                .querySelector('meta[name="csrf-token"]')
-                ?.getAttribute('content');
-
-            if (!csrfToken) {
-                console.error('CSRF token not found');
-                return;
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | Get existing Shopify Cart ID
-            |--------------------------------------------------------------------------
-            */
-
-            const existingCartId =
-                localStorage.getItem('shopify_cart_id');
-
-            console.log(
-                'Existing cart ID:',
-                existingCartId
-            );
-
-            const originalText = this.innerHTML;
-
-            this.disabled = true;
-            this.innerHTML = 'Adding...';
-
-            try {
-
-                const response = await fetch('/cart/add', {
-
-                    method: 'POST',
-
-                    credentials: 'same-origin',
-
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-
-                    body: JSON.stringify({
-
-                        variant_id: variantId,
-
-                        quantity: quantity,
-
-                        /*
-                        | Send existing cart ID
-                        */
-                        cart_id: existingCartId
-
-                    })
-
-                });
-
-                const data = await response.json();
-
-                console.log(
-                    'Shopify cart response:',
-                    data
-                );
-
-                if (!response.ok || !data.success) {
-
-                    throw new Error(
-                        data.message ||
-                        `HTTP ${response.status}`
-                    );
-
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | SAVE CART ID
-                |--------------------------------------------------------------------------
-                */
-
-                if (data.cart_id) {
-
-                    localStorage.setItem(
-                        'shopify_cart_id',
-                        data.cart_id
-                    );
-
-                    console.log(
-                        'Saved Shopify Cart ID:',
-                        data.cart_id
-                    );
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Update cart count
-                |--------------------------------------------------------------------------
-                */
-
-                document
-                    .querySelectorAll('.cart-count')
-                    .forEach(function (element) {
-
-                        element.textContent =
-                            data.itemCount || 0;
-
-                    });
-
-                this.innerHTML = 'Added ✓';
-
-                setTimeout(() => {
-
-                    this.innerHTML = originalText;
-
-                    this.disabled = false;
-
-                }, 1500);
-
-            } catch (error) {
-
-                console.error(
-                    'Add to Shopify cart error:',
-                    error
-                );
-
-                this.innerHTML = originalText;
-
-                this.disabled = false;
-            }
-
+        const response = await fetch('/shopify/cart/add', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute('content')
+            },
+            body: JSON.stringify({
+                variant_id: variantId,
+                quantity: quantity,
+                cart_id: existingCartId
+            })
         });
 
-    });
+        const data = await response.json();
 
-});
+        console.log('Shopify cart response:', data);
 
-function showCartNotification(message) {
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Unable to add product');
+        }
 
-    let notification =
-        document.getElementById('cart-notification');
+        // Save the SAME Shopify cart ID
+        if (data.cart_id) {
+            localStorage.setItem('shopify_cart_id', data.cart_id);
+            console.log('Saved Shopify Cart ID:', data.cart_id);
+        }
 
-    if (!notification) {
+        // Update navbar cart count
+        if (typeof updateCartCount === 'function') {
+            updateCartCount(data.itemCount);
+        }
 
-        notification = document.createElement('div');
+        // Don't redirect
+        if (typeof showToast === 'function') {
+            showToast('Product added to cart!');
+        }
 
-        notification.id = 'cart-notification';
+        return data;
 
-        notification.style.position = 'fixed';
-        notification.style.top = '20px';
-        notification.style.right = '20px';
-        notification.style.zIndex = '99999';
-        notification.style.padding = '14px 20px';
-        notification.style.background = '#111';
-        notification.style.color = '#fff';
-        notification.style.borderRadius = '8px';
-        notification.style.boxShadow =
-            '0 10px 30px rgba(0,0,0,.2)';
+    } catch (error) {
+        console.error('Add to Shopify cart error:', error);
 
-        document.body.appendChild(notification);
+        if (typeof showToast === 'function') {
+            showToast(error.message || 'Unable to add product', 'error');
+        }
     }
-
-    notification.textContent = message;
-    notification.style.display = 'block';
-
-    setTimeout(() => {
-        notification.style.display = 'none';
-    }, 2000);
 }
 </script>
     

@@ -391,7 +391,7 @@
 
            <button type="button" 
         class="add-to-cart-btn w-full mt-3 py-2.5 rounded-lg font-semibold text-sm transition flex items-center justify-center gap-2 bg-gray-900 text-white hover:bg-gray-700"
-        data-variant-id="{{ $variantId }}" data-quantity="1"
+        onclick="addToShopifyCart('{{ $variant->id }}', 1)"
         >
     🛒 Add to Cart
 </button>
