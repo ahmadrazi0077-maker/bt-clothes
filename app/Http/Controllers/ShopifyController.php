@@ -398,7 +398,7 @@ public function home()
     // CART METHODS
     // ============================================
     
-    public function addToCart(Request $request)
+     public function addToCart(Request $request)
     {
         $variantId = $request->variant_id;
         $quantity = $request->quantity ?? 1;
@@ -411,13 +411,13 @@ public function home()
         }
         
         // ✅ Get cart ID from cookie
-        $cartId = Cookie::get('shopify_cart_id');
+        $cartId = $request->cookie('shopify_cart_id');
         
         if (!$cartId) {
             $cart = $this->shopify->createCart();
             if ($cart) {
                 $cartId = $cart['id'];
-                // ✅ Save to cookie (30 days)
+                // ✅ Set cookie (30 days)
                 Cookie::queue('shopify_cart_id', $cartId, 60 * 24 * 30);
             }
         }
@@ -452,10 +452,10 @@ public function home()
     // CART PAGE
     // ============================================
     
-    public function cart()
+    public function cart(Request $request)
     {
         // ✅ Get cart ID from cookie
-        $cartId = Cookie::get('shopify_cart_id');
+        $cartId = $request->cookie('shopify_cart_id');
         
         $cart = null;
         $items = [];
@@ -488,9 +488,9 @@ public function home()
     // CART COUNT
     // ============================================
     
-    public function cartCount()
+    public function cartCount(Request $request)
     {
-        $cartId = Cookie::get('shopify_cart_id');
+        $cartId = $request->cookie('shopify_cart_id');
         $count = 0;
         
         if ($cartId) {
@@ -509,7 +509,7 @@ public function home()
     
     public function updateCart(Request $request)
     {
-        $cartId = Cookie::get('shopify_cart_id');
+        $cartId = $request->cookie('shopify_cart_id');
         $lineId = $request->line_id;
         $quantity = $request->quantity;
         
@@ -536,7 +536,7 @@ public function home()
     
     public function removeFromCart(Request $request)
     {
-        $cartId = Cookie::get('shopify_cart_id');
+        $cartId = $request->cookie('shopify_cart_id');
         $lineId = $request->line_id;
         
         if (!$cartId) {
@@ -556,9 +556,9 @@ public function home()
     // CHECKOUT
     // ============================================
     
-    public function checkout()
+    public function checkout(Request $request)
     {
-        $cartId = Cookie::get('shopify_cart_id');
+        $cartId = $request->cookie('shopify_cart_id');
         
         if (!$cartId) {
             return redirect()->route('cart')->with('error', 'Your cart is empty');
@@ -578,10 +578,6 @@ public function home()
     // CHECKOUT
     // ============================================
     
-   
-
-    
-   
     
     // ============================================
     // HELPER METHODS
