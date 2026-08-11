@@ -414,11 +414,13 @@ public function home()
         return $cartId;
     }
     
-
-public function addToShopifyCart(Request $request)
+      public function addToShopifyCart(Request $request)
 {
     $variantId = $request->input('variant_id');
-    $quantity = max(1, (int) $request->input('quantity', 1));
+    $quantity = max(
+        1,
+        (int) $request->input('quantity', 1)
+    );
 
     if (!$variantId) {
         return response()->json([
@@ -427,20 +429,10 @@ public function addToShopifyCart(Request $request)
         ], 400);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Convert Shopify GraphQL ID to numeric Variant ID
-    |--------------------------------------------------------------------------
-    |
-    | Example:
-    | gid://shopify/ProductVariant/123456789
-    |
-    | becomes:
-    | 123456789
-    |
-    */
-
-    if (str_starts_with($variantId, 'gid://shopify/ProductVariant/')) {
+    if (str_starts_with(
+        $variantId,
+        'gid://shopify/ProductVariant/'
+    )) {
         $variantId = str_replace(
             'gid://shopify/ProductVariant/',
             '',
@@ -448,14 +440,11 @@ public function addToShopifyCart(Request $request)
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Build Shopify Cart Permalink
-    |--------------------------------------------------------------------------
-    */
-
-    $cartUrl = 'https://shop.btclothes.com/cart/' .
-        $variantId . ':' . $quantity;
+    $cartUrl =
+        'https://shop.btclothes.com/cart/' .
+        $variantId .
+        ':' .
+        $quantity;
 
     return response()->json([
         'success' => true,
