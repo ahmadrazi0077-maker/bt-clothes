@@ -392,7 +392,7 @@
            <button
     type="button"
     class="add-to-cart-btn"
-    data-variant-id="{{ $variant['id'] }}"
+    data-variant-id="{{ $variantId }}"
     data-quantity="1"
 >
     Add to Cart

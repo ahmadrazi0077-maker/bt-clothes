@@ -63,31 +63,17 @@
     <!-- ✅ All JavaScript -->
   
         <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', () => {
 
-    document.querySelectorAll('.add-to-cart-btn').forEach(function (button) {
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
 
-        button.addEventListener('click', async function (event) {
-
-            event.preventDefault();
+        button.addEventListener('click', async function () {
 
             const variantId = this.dataset.variantId;
-
-            const quantity = parseInt(
-                this.dataset.quantity || '1'
-            );
+            const quantity = parseInt(this.dataset.quantity || '1');
 
             if (!variantId) {
-                alert('Product variant is not available.');
-                return;
-            }
-
-            const csrfToken = document.querySelector(
-                'meta[name="csrf-token"]'
-            )?.getAttribute('content');
-
-            if (!csrfToken) {
-                alert('Security token missing. Please refresh the page.');
+                console.error('Shopify variant ID missing');
                 return;
             }
 
@@ -98,95 +84,64 @@ document.addEventListener('DOMContentLoaded', function () {
 
             try {
 
-                const response = await fetch('/cart/add', {
+                const csrfToken = document.querySelector(
+                    'meta[name="csrf-token"]'
+                )?.getAttribute('content');
+
+                const response = await fetch('/shopify/cart/add', {
 
                     method: 'POST',
-
-                    credentials: 'same-origin',
 
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
+
+                    credentials: 'same-origin',
 
                     body: JSON.stringify({
                         variant_id: variantId,
                         quantity: quantity
                     })
-
                 });
 
                 const data = await response.json();
 
-                console.log('Cart response:', data);
-
                 if (!response.ok || !data.success) {
                     throw new Error(
-                        data.message ||
-                        'Unable to add product to cart.'
+                        data.message || 'Unable to add product to cart'
                     );
                 }
 
-                /*
-                |--------------------------------------------------------------------------
-                | SUCCESS
-                |--------------------------------------------------------------------------
-                |
-                | IMPORTANT:
-                | Do NOT redirect.
-                |
-                */
+                console.log('Shopify cart:', data);
 
-                this.innerHTML = '✓ Added';
-
-                /*
-                | Update cart counter
-                */
-
-                document.querySelectorAll(
-                    '[data-cart-count]'
-                ).forEach(function (counter) {
-
-                    counter.textContent =
-                        data.itemCount || 0;
-
+                // Update cart counters
+                document.querySelectorAll('.cart-count').forEach(el => {
+                    el.textContent = data.itemCount || 0;
                 });
 
-                /*
-                | Optional small notification
-                */
+                this.innerHTML = 'Added ✓';
 
-                showCartNotification(
-                    'Product added to cart!'
-                );
-
-                /*
-                | Restore button
-                */
+                // IMPORTANT:
+                // Do NOT redirect to checkout
+                // Do NOT redirect to Shopify cart
 
                 setTimeout(() => {
-                    this.disabled = false;
                     this.innerHTML = originalText;
+                    this.disabled = false;
                 }, 1500);
 
             } catch (error) {
 
-                console.error(
-                    'Add to Shopify cart error:',
-                    error
-                );
+                console.error('Add to Shopify cart error:', error);
 
-                alert(error.message);
-
+                this.innerHTML = 'Try Again';
                 this.disabled = false;
-                this.innerHTML = originalText;
             }
-
         });
-
     });
-
 });
 
 function showCartNotification(message) {

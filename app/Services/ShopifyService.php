@@ -652,7 +652,7 @@ GRAPHQL;
 
     $variables = [
         'cartId' => $cartId,
-        'lines' => $lineItems
+        'lines' => $lineItems,
     ];
 
     $result = $this->graphqlQuery($query, $variables);
@@ -662,7 +662,8 @@ GRAPHQL;
     }
 
     if (!empty($result['cartLinesAdd']['userErrors'])) {
-        \Log::error('Shopify cartLinesAdd errors', [
+
+        Log::error('Shopify Cart Add Errors', [
             'errors' => $result['cartLinesAdd']['userErrors']
         ]);
 
