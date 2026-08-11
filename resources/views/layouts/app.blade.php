@@ -65,7 +65,14 @@
 <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 opacity-0 transition-all duration-500 z-50 max-w-sm">
     <span id="toast-message"></span>
 </div>
-<script src="{{ asset('js/custom.js') }}"></script>
+<script src="{{ asset('js/cart.js') }}"></script>
+    
+    <script>
+        // ✅ Fallback - Ensure functions are available
+        window.addToCart = addToCart;
+        window.updateCartCount = updateCartCount;
+        window.showToast = showToast;
+    </script>
     
     @stack('scripts')
 </body>
