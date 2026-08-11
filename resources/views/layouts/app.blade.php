@@ -89,7 +89,6 @@
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // ✅ Update button state
             button.innerHTML = '✅ Added!';
             button.classList.add('bg-green-600');
             button.classList.remove('bg-gray-900');
@@ -97,10 +96,9 @@
             // ✅ Update cart count
             updateCartCount();
             
-            // ✅ Show toast
+            // ✅ Show toast only - NO REDIRECT
             showToast('🛒 Product added to cart!');
             
-            // ✅ Reset button after 2 seconds
             setTimeout(() => {
                 button.innerHTML = originalText;
                 button.disabled = false;
