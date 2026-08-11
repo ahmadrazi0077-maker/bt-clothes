@@ -61,7 +61,7 @@ Route::get('/cart/count', [ShopifyController::class, 'cartCount'])
 
 
 
-Route::post('/shopify/cart/add', [
+Route::get('/shopify/cart/add', [
     ShopifyController::class,
     'addToShopifyCart'
 ])->name('shopify.cart.add');
