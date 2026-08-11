@@ -470,53 +470,44 @@ public function home()
 }
     
     public function addToCart(Request $request)
-    {
-        try {
-            $variantId = $request->variant_id;
-            $quantity = $request->quantity ?? 1;
-            
-            if (!$variantId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Variant ID required'
-                ], 400);
-            }
-            
-            $cartId = $this->getCartId();
-            
-            $lineItems = [
-                [
-                    'quantity' => $quantity,
-                    'merchandiseId' => $variantId
-                ]
-            ];
-            
-            $cart = $this->shopify->addToCart($cartId, $lineItems);
-            
-            if ($cart) {
-                Session::put('shopify_cart', $cart);
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Product added to cart! 🛒',
-                    'cart' => $cart,
-                    'itemCount' => $cart['totalQuantity'] ?? 0,
-                    'total' => $cart['estimatedCost']['totalAmount']['amount'] ?? 0
-                ]);
-            }
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to add to cart'
-            ], 500);
-        } catch (\Exception $e) {
-            Log::error('Add to cart error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error adding to cart'
-            ], 500);
+{
+    $variantId = $request->variant_id;
+    $quantity = $request->quantity ?? 1;
+    
+    if (!$variantId) {
+        return response()->json(['success' => false, 'message' => 'Variant ID required'], 400);
+    }
+    
+    $cartId = Session::get('shopify_cart_id');
+    
+    if (!$cartId) {
+        $cart = $this->shopify->createCart();
+        if ($cart) {
+            $cartId = $cart['id'];
+            Session::put('shopify_cart_id', $cartId);
         }
     }
+    
+    if (!$cartId) {
+        return response()->json(['success' => false, 'message' => 'Unable to create cart'], 500);
+    }
+    
+    $cart = $this->shopify->addToCart($cartId, [
+        ['quantity' => $quantity, 'merchandiseId' => $variantId]
+    ]);
+    
+    if ($cart) {
+        Session::put('shopify_cart', $cart);
+        return response()->json([
+            'success' => true,
+            'message' => 'Product added to cart!',
+            'cart' => $cart,
+            'checkoutUrl' => $cart['checkoutUrl'] // ✅ Send checkout URL
+        ]);
+    }
+    
+    return response()->json(['success' => false, 'message' => 'Unable to add to cart'], 500);
+}
     
     public function updateCart(Request $request)
     {

@@ -66,26 +66,19 @@
     const variantId = button.dataset.variantId;
     
     if (!variantId) {
-        showToast('❌ Product variant not found');
+        showToast('❌ Please select a variant');
         return;
     }
-    
-    const token = document.querySelector('meta[name="csrf-token"]');
-    
-    console.log('🛒 Adding to cart:', variantId);
-    console.log('CSRF Token:', token ? token.content : 'NOT FOUND');
     
     const originalText = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '⏳ Adding...';
-    button.classList.add('opacity-70');
     
     fetch('/cart/add', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token ? token.content : '',
-            'Accept': 'application/json'
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
         },
         body: JSON.stringify({
             variant_id: variantId,
@@ -94,35 +87,22 @@
     })
     .then(response => response.json())
     .then(data => {
-        console.log('Response data:', data);
         if (data.success) {
             button.innerHTML = '✅ Added!';
             button.classList.add('bg-green-600');
-            button.classList.remove('bg-gray-900');
-            updateCartCount();
-            showToast('🛒 Product added to cart!');
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70', 'bg-green-600');
-                button.classList.add('bg-gray-900');
-            }, 2000);
-        } else {
-            button.innerHTML = '❌ Failed';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70');
-            }, 2000);
-            showToast('❌ ' + (data.message || 'Error adding to cart'));
+            
+            // ✅ Redirect to Shopify cart
+            if (data.cart && data.cart.checkoutUrl) {
+                window.location.href = data.cart.checkoutUrl;
+            }
         }
     })
-    .catch(error => {
-        console.error('❌ Error:', error);
-        button.innerHTML = originalText;
-        button.disabled = false;
-        button.classList.remove('opacity-70');
-        showToast('❌ Error adding to cart');
+    .catch(() => {
+        button.innerHTML = '❌ Failed';
+        setTimeout(() => {
+            button.innerHTML = '🛒 Add to Cart';
+            button.disabled = false;
+        }, 2000);
     });
 }
 

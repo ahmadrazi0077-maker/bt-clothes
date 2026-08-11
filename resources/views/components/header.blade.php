@@ -100,12 +100,12 @@
 </a>
 <!-- In header actions -->
 
-                <a href="/cart" class="text-xl hover:text-gray-600 transition relative" id="cartLink" aria-label="Cart">
-                    🛒
-                    <span class="absolute -top-2 -right-3 bg-gray-900 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center cart-count">
-                        0
-                    </span>
-                </a>
+                <a href="https://shop.btclothes.com/cart" class="text-xl hover:text-gray-600 transition relative">
+    🛒
+    <span class="absolute -top-2 -right-3 bg-gray-900 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center cart-count">
+        0
+    </span>
+</a>
                 <button id="mobileToggle" class="lg:hidden text-2xl hover:text-gray-600 transition" aria-label="Menu">
                     ☰
                 </button>
