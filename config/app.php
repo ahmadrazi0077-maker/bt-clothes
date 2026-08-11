@@ -133,10 +133,13 @@ return [
 
 
     'providers' => [
-    // ✅ Ensure these are present
+    // ✅ Essential providers
     Illuminate\View\ViewServiceProvider::class,
     Illuminate\Session\SessionServiceProvider::class,
     Illuminate\Routing\RoutingServiceProvider::class,
-],
+    Illuminate\Foundation\Providers\FoundationServiceProvider::class,
+    Illuminate\Cookie\CookieServiceProvider::class,
+    Illuminate\Filesystem\FilesystemServiceProvider::class,
+]
 
 ];
