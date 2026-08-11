@@ -530,24 +530,7 @@ public function cartCount()
     // CART COUNT
     // ============================================
     
-    public function cartCount()
-    {
-        $cart = Session::get('shopify_cart');
-        if ($cart) {
-            return response()->json(['count' => $cart['totalQuantity'] ?? 0]);
-        }
-        
-        $cartId = Session::get('shopify_cart_id');
-        if ($cartId) {
-            $cart = $this->shopify->getCart($cartId);
-            if ($cart) {
-                Session::put('shopify_cart', $cart);
-                return response()->json(['count' => $cart['totalQuantity'] ?? 0]);
-            }
-        }
-        
-        return response()->json(['count' => 0]);
-    }
+    
     
     // ============================================
     // UPDATE CART
