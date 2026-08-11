@@ -1,18 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Cart')
+@section('title', 'Shopping Cart')
 
 @section('content')
 <div class="container mx-auto px-4 py-12">
-    <h1 class="text-2xl font-bold mb-6">Shopping Cart</h1>
-    
-    {{-- ✅ DEBUG INFO --}}
-    <div class="bg-yellow-100 p-4 mb-4 rounded">
-        <p><strong>Debug:</strong> {{ $debug ?? 'No debug' }}</p>
-        <p><strong>Session Cart ID:</strong> {{ session('shopify_cart_id') ?? 'None' }}</p>
-        <p><strong>Items Count:</strong> {{ count($items ?? []) }}</p>
-        <p><strong>Cart Total:</strong> Rs. {{ number_format($total ?? 0, 0) }}</p>
-    </div>
+    <h1 class="text-3xl font-light mb-8">Shopping Cart</h1>
     
     @if(isset($items) && count($items) > 0)
         @foreach($items as $item)
@@ -27,10 +19,10 @@
                 $image = $product['images']['edges'][0]['node']['url'] ?? null;
             @endphp
             
-            <div class="flex items-center gap-4 border-b py-4" data-line-id="{{ $node['id'] }}">
-                <div class="w-16 h-16 bg-gray-100 rounded">
+            <div class="flex items-center gap-4 border-b py-4">
+                <div class="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
                     @if($image)
-                        <img src="{{ $image }}" class="w-full h-full object-cover rounded">
+                        <img src="{{ $image }}" class="w-full h-full object-cover">
                     @else
                         <div class="w-full h-full flex items-center justify-center text-2xl">👕</div>
                     @endif
@@ -54,26 +46,25 @@
         @endforeach
         
         <div class="mt-6 text-right">
-            <p class="text-xl font-bold">Total: Rs. {{ number_format($total ?? 0, 0) }}</p>
-            <a href="{{ route('checkout') }}" class="mt-4 inline-block bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
-                Checkout →
+            <p class="text-xl font-bold">Total: Rs. {{ number_format($total, 0) }}</p>
+            <a href="{{ $cart['checkoutUrl'] ?? '#' }}" class="mt-4 inline-block bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-700">
+                Proceed to Checkout →
             </a>
         </div>
     @else
         <div class="text-center py-16">
             <div class="text-6xl mb-4">🛒</div>
-            <h2 class="text-xl">Cart is empty</h2>
-            <a href="/" class="mt-4 inline-block bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
-                Shop Now
+            <h2 class="text-2xl font-light">Your cart is empty</h2>
+            <a href="/products" class="mt-4 inline-block bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
+                Start Shopping
             </a>
         </div>
     @endif
 </div>
 
+@push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Cart page loaded');
-    
     // Quantity
     document.querySelectorAll('.qty-dec, .qty-inc').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -126,4 +117,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+@endpush
 @endsection

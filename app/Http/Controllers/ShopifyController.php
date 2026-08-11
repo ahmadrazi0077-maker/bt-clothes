@@ -416,56 +416,32 @@ public function home()
     
     public function cart()
 {
-    // ✅ STEP 1: Check if cart ID exists in session
     $cartId = Session::get('shopify_cart_id');
-    Log::info('Step 1 - Cart ID from session:', ['cart_id' => $cartId]);
-    
-    if (!$cartId) {
-        Log::warning('Step 1 - No cart ID found in session');
-        return view('cart.index', [
-            'items' => [],
-            'total' => 0,
-            'count' => 0,
-            'debug' => 'No cart ID in session'
-        ]);
-    }
-    
-    // ✅ STEP 2: Get cart from Shopify
-    $cart = $this->shopify->getCart($cartId);
-    Log::info('Step 2 - Cart from Shopify:', ['cart' => $cart]);
-    
-    if (!$cart) {
-        Log::warning('Step 2 - Cart not found in Shopify');
-        Session::forget('shopify_cart_id');
-        return view('cart.index', [
-            'items' => [],
-            'total' => 0,
-            'count' => 0,
-            'debug' => 'Cart not found in Shopify'
-        ]);
-    }
-    
-    // ✅ STEP 3: Extract items
-    $items = $cart['lines']['edges'] ?? [];
-    Log::info('Step 3 - Items count:', ['count' => count($items)]);
-    
-    // ✅ STEP 4: Calculate total
+    $cart = null;
+    $items = [];
     $total = 0;
-    foreach ($items as $item) {
-        $price = $item['node']['merchandise']['price']['amount'] ?? 0;
-        $qty = $item['node']['quantity'] ?? 1;
-        $total += $price * $qty;
-    }
-    Log::info('Step 4 - Total:', ['total' => $total]);
+    $count = 0;
     
-    // ✅ STEP 5: Save cart to session for future
-    Session::put('shopify_cart', $cart);
+    if ($cartId) {
+        $cart = $this->shopify->getCart($cartId);
+        if ($cart) {
+            Session::put('shopify_cart', $cart);
+            $items = $cart['lines']['edges'] ?? [];
+            $count = $cart['totalQuantity'] ?? 0;
+            
+            foreach ($items as $item) {
+                $price = $item['node']['merchandise']['price']['amount'] ?? 0;
+                $qty = $item['node']['quantity'] ?? 1;
+                $total += $price * $qty;
+            }
+        }
+    }
     
     return view('cart.index', [
         'items' => $items,
         'total' => $total,
-        'count' => $cart['totalQuantity'] ?? 0,
-        'debug' => 'Success - Cart found!'
+        'count' => $count,
+        'cart' => $cart
     ]);
 }
     

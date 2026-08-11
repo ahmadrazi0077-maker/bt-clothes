@@ -100,7 +100,7 @@
 </a>
 <!-- In header actions -->
 
-                <a href="https://shop.btclothes.com/cart" class="text-xl hover:text-gray-600 transition relative">
+                <a href="{{ route('cart') }}" class="text-xl hover:text-gray-600 transition relative">
     🛒
     <span class="absolute -top-2 -right-3 bg-gray-900 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center cart-count">
         0
