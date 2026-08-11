@@ -117,15 +117,8 @@ Route::get('/product/{handle}', [ShopifyController::class, 'product'])->name('pr
 // ============================================
 // PAGES
 // ============================================
-Route::get('/test-cart', function () {
-    return view('cart.index', [
-        'cart' => null,
-        'cartItems' => [],
-        'total' => 0,
-        'subtotal' => 0,
-        'tax' => 0,
-        'itemCount' => 0
-    ]);
+Route::get('/test-layout', function () {
+    return view('layouts.app');
 });
 Route::get('/pages/{page}', function ($page) {
     $allowed = ['about', 'contact', 'faq', 'shipping', 'returns', 'size-guide', 'privacy', 'terms', 'cookies'];

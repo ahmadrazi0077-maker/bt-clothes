@@ -438,7 +438,7 @@ public function home()
         if ($cart) {
             Session::put('shopify_cart', $cart);
         }
-        
+         \Log::info('Cart data:', ['cart' => $cart]);
         return view('cart.index', [
             'cart' => $cart,
             'cartItems' => $cart['lines']['edges'] ?? [],
