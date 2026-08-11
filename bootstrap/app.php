@@ -11,8 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
-    })
+    $middleware->validateCsrfTokens(except: [
+        'cart/*',
+        'cart/add',
+        'newsletter/subscribe',
+        'api/*'
+    ]);
+})
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
