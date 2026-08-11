@@ -421,7 +421,7 @@ public function home()
     $cartId = $request->cookie('shopify_cart_id')
         ?? Session::get('shopify_cart_id');
 
-    \Log::info('CART DEBUG - Cart ID', [
+    Log::info('CART DEBUG - Cart ID', [
         'cookie_cart_id' => $request->cookie('shopify_cart_id'),
         'session_cart_id' => Session::get('shopify_cart_id'),
         'final_cart_id' => $cartId,
@@ -433,7 +433,7 @@ public function home()
     if ($cartId) {
         $cart = $this->shopify->getCart($cartId);
 
-        \Log::info('CART DEBUG - Shopify Cart', [
+        Log::info('CART DEBUG - Shopify Cart', [
             'cart_found' => $cart !== null,
             'total_quantity' => $cart['totalQuantity'] ?? null,
             'lines_count' => count($cart['lines']['edges'] ?? []),
@@ -504,7 +504,7 @@ public function home()
 
         if (!$cart || empty($cart['id'])) {
 
-            \Log::error('CART DEBUG - Cart creation failed');
+            Log::error('CART DEBUG - Cart creation failed');
 
             return response()->json([
                 'success' => false,
@@ -539,7 +539,7 @@ public function home()
 
     if (!$cart) {
 
-        \Log::error('CART DEBUG - Shopify addToCart failed', [
+        Log::error('CART DEBUG - Shopify addToCart failed', [
             'cart_id' => $cartId,
             'variant_id' => $variantId,
         ]);
@@ -560,7 +560,7 @@ public function home()
     Session::put('shopify_cart_id', $cartId);
     Session::put('shopify_cart', $cart);
 
-    \Log::info('CART DEBUG - Item Added', [
+    Log::info('CART DEBUG - Item Added', [
         'cart_id' => $cartId,
         'variant_id' => $variantId,
         'total_quantity' => $cart['totalQuantity'] ?? null,
