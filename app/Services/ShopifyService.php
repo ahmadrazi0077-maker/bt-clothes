@@ -418,7 +418,7 @@ public function getProductById($id)
     // CART METHODS
     // ============================================
     
-   public function createCart($lineItems = [])
+  public function createCart($lineItems = [])
 {
     $query = '
         mutation CartCreate($input: CartInput!) {
@@ -446,8 +446,8 @@ public function getProductById($id)
     
     return null;
 }
-    
-   public function getCart($cartId)
+
+public function getCart($cartId)
 {
     $query = '
         query GetCart($cartId: ID!) {
@@ -495,10 +495,6 @@ public function getProductById($id)
                         amount
                         currencyCode
                     }
-                    totalTaxAmount {
-                        amount
-                        currencyCode
-                    }
                 }
             }
         }
@@ -512,202 +508,92 @@ public function getProductById($id)
     
     return null;
 }
-    
-    public function addToCart($cartId, $lineItems)
-    {
-        $query = '
-            mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
-                cartLinesAdd(cartId: $cartId, lines: $lines) {
-                    cart {
-                        id
-                        checkoutUrl
-                        lines(first: 20) {
-                            edges {
-                                node {
-                                    id
-                                    quantity
-                                    merchandise {
-                                        ... on ProductVariant {
-                                            id
-                                            title
-                                            price {
-                                                amount
-                                                currencyCode
-                                            }
-                                            product {
-                                                id
-                                                title
-                                                handle
-                                                images(first: 1) {
-                                                    edges {
-                                                        node {
-                                                            url
-                                                            altText
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        estimatedCost {
-                            subtotalAmount {
-                                amount
-                                currencyCode
-                            }
-                            totalAmount {
-                                amount
-                                currencyCode
-                            }
-                        }
-                        totalQuantity
-                    }
-                    userErrors {
-                        field
-                        message
-                    }
+
+public function addToCart($cartId, $lineItems)
+{
+    $query = '
+        mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+            cartLinesAdd(cartId: $cartId, lines: $lines) {
+                cart {
+                    id
+                    totalQuantity
                 }
             }
-        ';
-        
-        $variables = [
-            'cartId' => $cartId,
-            'lines' => $lineItems
-        ];
-        
-        $result = $this->graphqlQuery($query, $variables);
-        
-        if ($result && isset($result['cartLinesAdd']['cart'])) {
-            return $result['cartLinesAdd']['cart'];
         }
-        
-        return null;
+    ';
+    
+    $variables = [
+        'cartId' => $cartId,
+        'lines' => $lineItems
+    ];
+    
+    $result = $this->graphqlQuery($query, $variables);
+    
+    if ($result && isset($result['cartLinesAdd']['cart'])) {
+        return $result['cartLinesAdd']['cart'];
     }
     
-    public function updateCartLine($cartId, $lineId, $quantity)
-    {
-        $query = '
-            mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
-                cartLinesUpdate(cartId: $cartId, lines: $lines) {
-                    cart {
-                        id
-                        lines(first: 20) {
-                            edges {
-                                node {
-                                    id
-                                    quantity
-                                    merchandise {
-                                        ... on ProductVariant {
-                                            id
-                                            title
-                                            price {
-                                                amount
-                                                currencyCode
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        estimatedCost {
-                            subtotalAmount {
-                                amount
-                                currencyCode
-                            }
-                            totalAmount {
-                                amount
-                                currencyCode
-                            }
-                        }
-                        totalQuantity
-                    }
-                    userErrors {
-                        field
-                        message
-                    }
+    return null;
+}
+
+public function updateCartLine($cartId, $lineId, $quantity)
+{
+    $query = '
+        mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
+            cartLinesUpdate(cartId: $cartId, lines: $lines) {
+                cart {
+                    id
+                    totalQuantity
                 }
             }
-        ';
-        
-        $variables = [
-            'cartId' => $cartId,
-            'lines' => [
-                [
-                    'id' => $lineId,
-                    'quantity' => $quantity
-                ]
+        }
+    ';
+    
+    $variables = [
+        'cartId' => $cartId,
+        'lines' => [
+            [
+                'id' => $lineId,
+                'quantity' => $quantity
             ]
-        ];
-        
-        $result = $this->graphqlQuery($query, $variables);
-        
-        if ($result && isset($result['cartLinesUpdate']['cart'])) {
-            return $result['cartLinesUpdate']['cart'];
-        }
-        
-        return null;
+        ]
+    ];
+    
+    $result = $this->graphqlQuery($query, $variables);
+    
+    if ($result && isset($result['cartLinesUpdate']['cart'])) {
+        return $result['cartLinesUpdate']['cart'];
     }
     
-    public function removeCartLine($cartId, $lineIds)
-    {
-        $query = '
-            mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
-                cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
-                    cart {
-                        id
-                        lines(first: 20) {
-                            edges {
-                                node {
-                                    id
-                                    quantity
-                                    merchandise {
-                                        ... on ProductVariant {
-                                            id
-                                            title
-                                            price {
-                                                amount
-                                                currencyCode
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        estimatedCost {
-                            subtotalAmount {
-                                amount
-                                currencyCode
-                            }
-                            totalAmount {
-                                amount
-                                currencyCode
-                            }
-                        }
-                        totalQuantity
-                    }
-                    userErrors {
-                        field
-                        message
-                    }
+    return null;
+}
+
+public function removeCartLine($cartId, $lineIds)
+{
+    $query = '
+        mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
+            cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+                cart {
+                    id
+                    totalQuantity
                 }
             }
-        ';
-        
-        $variables = [
-            'cartId' => $cartId,
-            'lineIds' => $lineIds
-        ];
-        
-        $result = $this->graphqlQuery($query, $variables);
-        
-        if ($result && isset($result['cartLinesRemove']['cart'])) {
-            return $result['cartLinesRemove']['cart'];
         }
-        
-        return null;
+    ';
+    
+    $variables = [
+        'cartId' => $cartId,
+        'lineIds' => $lineIds
+    ];
+    
+    $result = $this->graphqlQuery($query, $variables);
+    
+    if ($result && isset($result['cartLinesRemove']['cart'])) {
+        return $result['cartLinesRemove']['cart'];
     }
+    
+    return null;
+}
     
     public function addDiscount($cartId, $discountCode)
     {
