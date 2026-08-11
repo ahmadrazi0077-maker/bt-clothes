@@ -6,9 +6,9 @@
 <div class="container mx-auto px-4 py-12">
     <h1 class="text-3xl font-light mb-8">Shopping Cart</h1>
     
-    {{-- ✅ DEBUG INFO --}}
+    {{-- Debug Info --}}
     <div class="bg-yellow-100 p-4 mb-4 rounded">
-        <p><strong>Debug:</strong> {{ session('shopify_cart_id') ? 'Cart ID exists' : 'No cart ID' }}</p>
+        <p><strong>Debug:</strong> {{ $debug ?? 'No debug' }}</p>
         <p><strong>Items Count:</strong> {{ count($items ?? []) }}</p>
         <p><strong>Total Items:</strong> {{ $itemCount ?? 0 }}</p>
     </div>
