@@ -93,25 +93,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
             try {
 
-                const response = await fetch(
-                    const response = await fetch('/cart/add', {
+                const response = await fetch('/cart/add', {
     method: 'POST',
 
-                        credentials: 'same-origin',
+    credentials: 'same-origin',
 
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document
+            .querySelector('meta[name="csrf-token"]')
+            .getAttribute('content'),
+        'X-Requested-With': 'XMLHttpRequest'
+    },
 
-                        body: JSON.stringify({
-                            variant_id: variantId,
-                            quantity: quantity
-                        })
-                    }
-                );
+    body: JSON.stringify({
+        variant_id: variantId,
+        quantity: quantity
+    })
+});
 
                 const data = await response.json();
 
