@@ -63,17 +63,6 @@ Route::get('/cart/count', [ShopifyController::class, 'cartCount'])
 
  
 
-Route::post('/shopify/cart/add', [ShopifyController::class, 'addToCart'])
-    ->name('shopify.cart.add');
-
-Route::get('/shopify/cart', [ShopifyController::class, 'cart'])
-    ->name('shopify.cart');
-
-Route::post('/shopify/cart/update', [ShopifyController::class, 'updateCart'])
-    ->name('shopify.cart.update');
-
-Route::post('/shopify/cart/remove', [ShopifyController::class, 'removeFromCart'])
-    ->name('shopify.cart.remove');
 
 // ============================================
 // API ROUTES

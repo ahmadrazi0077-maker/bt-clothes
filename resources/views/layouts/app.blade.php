@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
 
                 const response = await fetch(
-                    '{{ route("shopify.cart.add") }}',
+                    '{{ route("/cart/add") }}',
                     {
                         method: 'POST',
 
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
-});
+}); 
 
 function showCartNotification(message) {
 
