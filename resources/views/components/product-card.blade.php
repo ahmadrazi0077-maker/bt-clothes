@@ -353,7 +353,7 @@
                 class="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-700"
             >
 
-                {{-- Eye / Options Icon --}}
+                 {{-- Eye / Options Icon --}}
 
                 <svg
                     class="h-4 w-4"
