@@ -63,22 +63,38 @@
     <!-- ✅ All JavaScript -->
   
         <<script>
-async function addToShopifyCart(variantId, quantity = 1) {
+window.addToShopifyCart = async function(variantId, quantity = 1) {
+
+    console.log('ADD TO CART CLICKED');
+    console.log('Variant ID:', variantId);
+
     try {
-        const existingCartId = localStorage.getItem('shopify_cart_id');
+
+        const existingCartId =
+            localStorage.getItem('shopify_cart_id');
 
         console.log('Existing cart ID:', existingCartId);
 
+        const csrfElement =
+            document.querySelector('meta[name="csrf-token"]');
+
+        if (!csrfElement) {
+            throw new Error('CSRF token not found');
+        }
+
         const response = await fetch('/cart/add', {
+
             method: 'POST',
+
             credentials: 'same-origin',
+
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'X-CSRF-TOKEN': document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute('content')
+                'X-CSRF-TOKEN': csrfElement.getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest'
             },
+
             body: JSON.stringify({
                 variant_id: variantId,
                 quantity: quantity,
@@ -86,40 +102,53 @@ async function addToShopifyCart(variantId, quantity = 1) {
             })
         });
 
+        console.log('HTTP Status:', response.status);
+
         const data = await response.json();
 
         console.log('Shopify cart response:', data);
 
         if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Unable to add product');
+            throw new Error(
+                data.message || 'Unable to add product'
+            );
         }
 
-        // Save the SAME Shopify cart ID
         if (data.cart_id) {
-            localStorage.setItem('shopify_cart_id', data.cart_id);
-            console.log('Saved Shopify Cart ID:', data.cart_id);
+
+            localStorage.setItem(
+                'shopify_cart_id',
+                data.cart_id
+            );
+
+            console.log(
+                'Saved cart ID:',
+                data.cart_id
+            );
         }
 
-        // Update navbar cart count
         if (typeof updateCartCount === 'function') {
             updateCartCount(data.itemCount);
         }
 
-        // Don't redirect
         if (typeof showToast === 'function') {
             showToast('Product added to cart!');
+        } else {
+            alert('Product added to cart!');
         }
-
-        return data;
 
     } catch (error) {
-        console.error('Add to Shopify cart error:', error);
 
-        if (typeof showToast === 'function') {
-            showToast(error.message || 'Unable to add product', 'error');
-        }
+        console.error(
+            'Add to Shopify cart error:',
+            error
+        );
+
+        alert(
+            error.message || 'Unable to add product'
+        );
     }
-}
+};
 </script>
     
     @stack('scripts')
