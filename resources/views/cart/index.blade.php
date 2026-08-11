@@ -63,7 +63,7 @@
         <div class="text-center py-16">
             <div class="text-6xl mb-4">🛒</div>
             <h2 class="text-xl">Cart is empty</h2>
-            <a href="/products" class="mt-4 inline-block bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
+            <a href="/" class="mt-4 inline-block bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
                 Shop Now
             </a>
         </div>

@@ -77,10 +77,10 @@
                     
                     <li><a href="/collections" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">Collections</a></li>
                     <li><a href="/categories" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">Categories</a></li>
-                    <li><a href="/products" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">Shop</a></li>
+                    <li><a href="/products" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">Products</a></li>
                     <li><a href="/blog" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">Journal</a></li>
                     <li><a href="/pages/about" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">About</a></li>
-                    <li><a href="/pages/contact" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">Contact</a></li>
+                    <li><a href="https://shop.btclothes.com/pages/contact" class="text-sm font-semibold uppercase tracking-wider hover:text-gray-600 transition">Contact</a></li>
                 </ul>
             </nav>
             
@@ -115,13 +115,13 @@
         <!-- Mobile Navigation -->
         <div id="mobileNav" class="lg:hidden hidden bg-white border-t border-gray-200 py-4">
             <ul class="flex flex-col space-y-2">
-                <li><a href="{{ $routes['all_products'] }}" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">Shop</a></li>
+                <li><a href="/" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">Home</a></li>
                 <li><a href="/collections" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">Collections</a></li>
                 <li><a href="/categories" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">Categories</a></li>
                 <li><a href="/products" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">All Products</a></li>
                 <li><a href="/blog" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">Journal</a></li>
                 <li><a href="/pages/about" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">About</a></li>
-                <li><a href="/pages/contact" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">Contact</a></li>
+                <li><a href="https://shop.btclothes.com/pages/contact" class="block px-4 py-2 hover:bg-gray-50 rounded text-sm font-medium">Contact</a></li>
             </ul>
         </div>
     </div>
