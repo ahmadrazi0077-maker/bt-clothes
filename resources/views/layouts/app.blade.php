@@ -69,7 +69,7 @@ async function addToShopifyCart(variantId, quantity = 1) {
 
         console.log('Existing cart ID:', existingCartId);
 
-        const response = await fetch('/shopify/cart/add', {
+        const response = await fetch('/cart/add', {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
