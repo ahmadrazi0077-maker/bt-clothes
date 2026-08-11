@@ -7,6 +7,7 @@ use App\Services\ShopifyService;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
 
+
 class ShopifyController extends Controller
 {
     protected $shopify;
@@ -451,7 +452,7 @@ public function home()
         $variantId = $request->variant_id;
         $quantity = $request->quantity ?? 1;
         
-        \Log::info('Add to cart request:', $request->all());
+        // \Log::info('Add to cart request:', $request->all());
         
         if (!$variantId) {
             return response()->json([
@@ -503,7 +504,7 @@ public function home()
         ], 500);
         
     } catch (\Exception $e) {
-        \Log::error('Add to cart error:', ['error' => $e->getMessage()]);
+        // \Log::error('Add to cart error:', ['error' => $e->getMessage()]);
         return response()->json([
             'success' => false,
             'message' => $e->getMessage()
