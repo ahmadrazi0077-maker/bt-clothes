@@ -77,40 +77,36 @@
     button.innerHTML = '⏳ Adding...';
     button.classList.add('opacity-70');
     
+    // ✅ Get CSRF token properly
+    const token = document.querySelector('meta[name="csrf-token"]');
+    
     fetch('/cart/add', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            'X-CSRF-TOKEN': token ? token.content : ''
         },
         body: JSON.stringify({
             variant_id: variantId,
             quantity: 1
         })
     })
-    .then(response => response.json())
-    .then(data => {
-        console.log('📦 Response:', data);
-        if (data.success) {
-            button.innerHTML = '✅ Added!';
-            button.classList.add('bg-green-600');
-            button.classList.remove('bg-gray-900');
-            updateCartCount();
-            showToast('🛒 Product added to cart!');
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70', 'bg-green-600');
-                button.classList.add('bg-gray-900');
-            }, 2000);
-        } else {
-            button.innerHTML = '❌ Failed';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70');
-            }, 2000);
-            showToast('❌ ' + (data.message || 'Error adding to cart'));
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.text(); // First get text to debug
+    })
+    .then(text => {
+        console.log('Raw response:', text);
+        try {
+            const data = JSON.parse(text);
+            console.log('Parsed data:', data);
+            handleAddToCartResponse(button, originalText, data);
+        } catch (e) {
+            console.error('JSON parse error:', e);
+            button.innerHTML = originalText;
+            button.disabled = false;
+            button.classList.remove('opacity-70');
+            showToast('❌ Server error');
         }
     })
     .catch(error => {
@@ -120,6 +116,30 @@
         button.classList.remove('opacity-70');
         showToast('❌ Error adding to cart');
     });
+}
+
+function handleAddToCartResponse(button, originalText, data) {
+    if (data.success) {
+        button.innerHTML = '✅ Added!';
+        button.classList.add('bg-green-600');
+        button.classList.remove('bg-gray-900');
+        updateCartCount();
+        showToast('🛒 Product added to cart!');
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            button.classList.remove('opacity-70', 'bg-green-600');
+            button.classList.add('bg-gray-900');
+        }, 2000);
+    } else {
+        button.innerHTML = '❌ Failed';
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            button.classList.remove('opacity-70');
+        }, 2000);
+        showToast('❌ ' + (data.message || 'Error adding to cart'));
+    }
 }
 
 function updateCartCount() {

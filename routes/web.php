@@ -117,7 +117,13 @@ Route::get('/product/{handle}', [ShopifyController::class, 'product'])->name('pr
 // ============================================
 // PAGES
 // ============================================
-
+Route::post('/test-cart', function (Request $request) {
+    return response()->json([
+        'success' => true,
+        'message' => 'Test route working!',
+        'data' => $request->all()
+    ]);
+});
 Route::get('/pages/{page}', function ($page) {
     $allowed = ['about', 'contact', 'faq', 'shipping', 'returns', 'size-guide', 'privacy', 'terms', 'cookies'];
     if (in_array($page, $allowed)) {
