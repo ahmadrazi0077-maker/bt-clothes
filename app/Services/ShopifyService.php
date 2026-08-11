@@ -581,6 +581,7 @@ GRAPHQL;
     return $result['cart'] ?? null;
 }
 
+
 public function addToCart($cartId, $lineItems)
 {
     $query = <<<'GRAPHQL'
@@ -646,6 +647,11 @@ mutation CartLinesAdd(
             field
             message
         }
+
+        warnings {
+            code
+            message
+        }
     }
 }
 GRAPHQL;
@@ -658,20 +664,41 @@ GRAPHQL;
     $result = $this->graphqlQuery($query, $variables);
 
     if (!$result) {
+        \Log::error('Shopify Cart API returned empty result');
+
         return null;
     }
 
-    if (!empty($result['cartLinesAdd']['userErrors'])) {
+    $payload = $result['cartLinesAdd'] ?? null;
 
-        Log::error('Shopify Cart Add Errors', [
-            'errors' => $result['cartLinesAdd']['userErrors']
+    if (!$payload) {
+        \Log::error('Shopify cartLinesAdd payload missing', [
+            'result' => $result
         ]);
 
         return null;
     }
 
-    return $result['cartLinesAdd']['cart'] ?? null;
+    if (!empty($payload['userErrors'])) {
+
+        \Log::error('Shopify Cart Add Errors', [
+            'errors' => $payload['userErrors']
+        ]);
+
+        return null;
+    }
+
+    if (!empty($payload['warnings'])) {
+
+        \Log::warning('Shopify Cart Add Warnings', [
+            'warnings' => $payload['warnings']
+        ]);
+    }
+
+    return $payload['cart'] ?? null;
 }
+
+
 
 public function updateCartLine($cartId, $lineId, $quantity)
 {

@@ -414,10 +414,12 @@ public function home()
         return $cartId;
     }
     
-      public function addToCart(Request $request)
+
+public function addToCart(Request $request)
 {
     try {
-        $variantId = $request->input('variant_id');
+
+        $variantId = trim((string) $request->input('variant_id'));
         $quantity = (int) $request->input('quantity', 1);
         $cartId = $request->input('cart_id');
 
@@ -434,7 +436,7 @@ public function home()
 
         /*
         |--------------------------------------------------------------------------
-        | STEP 1: Get existing cart ID
+        | Get existing cart
         |--------------------------------------------------------------------------
         */
 
@@ -444,7 +446,7 @@ public function home()
 
         /*
         |--------------------------------------------------------------------------
-        | STEP 2: Create cart ONLY if no existing cart
+        | Create cart only once
         |--------------------------------------------------------------------------
         */
 
@@ -452,7 +454,8 @@ public function home()
 
             $cart = $this->shopify->createCart();
 
-            if (!$cart || !isset($cart['id'])) {
+            if (!$cart || empty($cart['id'])) {
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Unable to create Shopify cart'
@@ -466,14 +469,14 @@ public function home()
 
         /*
         |--------------------------------------------------------------------------
-        | STEP 3: Add product to EXISTING cart
+        | Add product
         |--------------------------------------------------------------------------
         */
 
         $lineItems = [
             [
+                'merchandiseId' => $variantId,
                 'quantity' => $quantity,
-                'merchandiseId' => $variantId
             ]
         ];
 
@@ -482,7 +485,8 @@ public function home()
             $lineItems
         );
 
-        if (!$cart) {
+        if (!$cart || empty($cart['id'])) {
+
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to add product to Shopify cart'
@@ -491,32 +495,35 @@ public function home()
 
         /*
         |--------------------------------------------------------------------------
-        | STEP 4: Save cart ID in Laravel session too
+        | Save cart
         |--------------------------------------------------------------------------
         */
 
-        Session::put('shopify_cart_id', $cartId);
+        Session::put('shopify_cart_id', $cart['id']);
         Session::put('shopify_cart', $cart);
 
         /*
         |--------------------------------------------------------------------------
-        | STEP 5: Return SAME cart ID to browser
+        | Return cart data
         |--------------------------------------------------------------------------
         */
 
         return response()->json([
             'success' => true,
             'message' => 'Product added to cart',
-            'cart_id' => $cartId,
-            'itemCount' => $cart['totalQuantity'] ?? 0
+            'cart_id' => $cart['id'],
+            'itemCount' => (int) ($cart['totalQuantity'] ?? 0),
+            'checkout_url' => $cart['checkoutUrl'] ?? null,
         ]);
 
     } catch (\Throwable $e) {
 
         \Log::error('Shopify Add To Cart Error', [
             'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
             'variant_id' => $request->input('variant_id'),
-            'cart_id' => $request->input('cart_id')
+            'cart_id' => $request->input('cart_id'),
         ]);
 
         return response()->json([
@@ -528,6 +535,7 @@ public function home()
         ], 500);
     }
 }
+
 
 public function cartCount()
 {
@@ -552,52 +560,88 @@ public function cartCount()
     // CART PAGE
     // ============================================
     
-    public function cart()
-    {
-        // ✅ Get cart from session
-        $cart = Session::get('shopify_cart');
-        
-        // ✅ If no cart in session, try from Shopify
+
+public function cart()
+{
+    try {
+
+        $cartId = Session::get('shopify_cart_id');
+
+        if (!$cartId) {
+
+            return view('cart.index', [
+                'cartItems' => [],
+                'subtotal' => 0,
+                'itemCount' => 0,
+                'checkoutUrl' => null,
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Always fetch latest cart from Shopify
+        |--------------------------------------------------------------------------
+        */
+
+        $cart = $this->shopify->getCart($cartId);
+
         if (!$cart) {
-            $cartId = Session::get('shopify_cart_id');
-            if ($cartId) {
-                $cart = $this->shopify->getCart($cartId);
-                if ($cart) {
-                    Session::put('shopify_cart', $cart);
-                }
-            }
+
+            Session::forget('shopify_cart_id');
+            Session::forget('shopify_cart');
+
+            return view('cart.index', [
+                'cartItems' => [],
+                'subtotal' => 0,
+                'itemCount' => 0,
+                'checkoutUrl' => null,
+            ]);
         }
-        
-        // ✅ Extract items
-        $items = [];
-        $subtotal = 0;
-        $itemCount = 0;
-        
-        if ($cart && isset($cart['lines']['edges'])) {
-            $items = $cart['lines']['edges'];
-            foreach ($items as $item) {
-                $price = $item['node']['merchandise']['price']['amount'] ?? 0;
-                $qty = $item['node']['quantity'] ?? 1;
-                $subtotal += $price * $qty;
-                $itemCount += $qty;
-            }
-        }
-        
-        // ✅ Debug - log cart data
-        \Log::info('Cart data:', [
-            'items' => count($items),
-            'itemCount' => $itemCount,
-            'subtotal' => $subtotal,
-            'cart_id' => Session::get('shopify_cart_id')
-        ]);
-        
+
+        /*
+        |--------------------------------------------------------------------------
+        | Save latest cart
+        |--------------------------------------------------------------------------
+        */
+
+        Session::put('shopify_cart', $cart);
+
+        $cartItems = $cart['lines']['edges'] ?? [];
+
+        $subtotal = (float) (
+            $cart['cost']['subtotalAmount']['amount'] ?? 0
+        );
+
+        $itemCount = (int) (
+            $cart['totalQuantity'] ?? 0
+        );
+
+        $checkoutUrl = $cart['checkoutUrl'] ?? null;
+
         return view('cart.index', [
-            'items' => $items,
+            'cartItems' => $cartItems,
             'subtotal' => $subtotal,
             'itemCount' => $itemCount,
-            'cart' => $cart
+            'checkoutUrl' => $checkoutUrl,
+        ]);
+
+    } catch (\Throwable $e) {
+
+        \Log::error('Cart Page Error', [
+            'message' => $e->getMessage(),
+            'cart_id' => Session::get('shopify_cart_id'),
+        ]);
+
+        return view('cart.index', [
+            'cartItems' => [],
+            'subtotal' => 0,
+            'itemCount' => 0,
+            'checkoutUrl' => null,
         ]);
     }
+}
+
+
     
     // ============================================
     // CART COUNT
