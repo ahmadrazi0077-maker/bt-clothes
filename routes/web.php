@@ -36,12 +36,12 @@ Route::get('/search', [ShopifyController::class, 'search'])->name('search');
 // CART
 // ============================================
 
+
+
 Route::get('/cart', [ShopifyController::class, 'cart'])->name('cart');
 Route::post('/cart/add', [ShopifyController::class, 'addToCart'])->name('cart.add');
 Route::post('/cart/update', [ShopifyController::class, 'updateCart'])->name('cart.update');
 Route::post('/cart/remove', [ShopifyController::class, 'removeFromCart'])->name('cart.remove');
-Route::post('/cart/clear', [ShopifyController::class, 'clearCart'])->name('cart.clear');
-Route::post('/cart/discount', [ShopifyController::class, 'applyDiscount'])->name('cart.discount');
 Route::get('/cart/count', [ShopifyController::class, 'cartCount'])->name('cart.count');
 
 // Wishlist

@@ -6,11 +6,7 @@
 <div class="container mx-auto px-4 py-12">
     <h1 class="text-3xl font-light mb-8">Shopping Cart</h1>
     
-    @php
-        $hasItems = isset($cartItems) && count($cartItems) > 0;
-    @endphp
-    
-    @if($hasItems)
+    @if(isset($cartItems) && count($cartItems) > 0)
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
             @foreach($cartItems as $item)
                 @php
@@ -24,7 +20,6 @@
                     $quantity = $node['quantity'] ?? 1;
                     $lineTotal = $price * $quantity;
                     $productTitle = $product['title'] ?? 'Product';
-                    $productHandle = $product['handle'] ?? '#';
                 @endphp
                 
                 <div class="cart-item flex items-center gap-4 p-4 border-b border-gray-100 last:border-0" 
@@ -77,7 +72,7 @@
         <div class="mt-8 flex flex-wrap justify-between items-center gap-4">
             <a href="/products" class="text-gray-600 hover:text-gray-900 transition">← Continue Shopping</a>
             <div class="text-right">
-                <p class="text-lg font-semibold">Total: <span id="subtotal">Rs. {{ number_format((float)($subtotal ?? 0), 0) }}</span></p>
+                <p class="text-lg font-semibold">Total: Rs. {{ number_format((float)($subtotal ?? 0), 0) }}</p>
                 <a href="{{ route('checkout') }}" class="mt-4 block bg-gray-900 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-700 transition">
                     Proceed to Checkout →
                 </a>
@@ -88,7 +83,6 @@
         <div class="text-center py-16">
             <div class="text-6xl mb-6">🛒</div>
             <h2 class="text-2xl font-light">Your cart is empty</h2>
-            <p class="text-gray-600 mt-2">Looks like you haven't added any items yet.</p>
             <a href="/products" class="inline-block mt-6 bg-gray-900 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-700 transition">
                 Start Shopping
             </a>
@@ -100,7 +94,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Quantity controls
+    // Quantity
     document.querySelectorAll('.qty-decrease, .qty-increase').forEach(btn => {
         btn.addEventListener('click', function() {
             const row = this.closest('.cart-item');
@@ -131,21 +125,17 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     location.reload();
-                } else {
-                    alert(data.message || 'Error updating cart');
                 }
             })
-            .catch(() => {
-                alert('Error updating cart');
-            });
+            .catch(() => {});
         });
     });
     
-    // Remove item
+    // Remove
     document.querySelectorAll('.remove-item').forEach(btn => {
         btn.addEventListener('click', function() {
             const lineId = this.dataset.lineId;
-            if (!confirm('Remove this item from cart?')) return;
+            if (!confirm('Remove this item?')) return;
             
             fetch('/cart/remove', {
                 method: 'POST',
@@ -161,13 +151,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     location.reload();
-                } else {
-                    alert(data.message || 'Error removing item');
                 }
             })
-            .catch(() => {
-                alert('Error removing item');
-            });
+            .catch(() => {});
         });
     });
     

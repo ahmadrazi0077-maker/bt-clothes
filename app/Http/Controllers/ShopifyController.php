@@ -576,32 +576,6 @@ public function home()
         ], 500);
     }
     
-    public function clearCart()
-    {
-        $cartId = Session::get('shopify_cart_id');
-        
-        if ($cartId) {
-            $cart = $this->shopify->getCart($cartId);
-            if ($cart && isset($cart['lines']['edges'])) {
-                $lineIds = array_map(function($edge) {
-                    return $edge['node']['id'];
-                }, $cart['lines']['edges']);
-                
-                if (!empty($lineIds)) {
-                    $this->shopify->removeCartLine($cartId, $lineIds);
-                }
-            }
-        }
-        
-        Session::forget('shopify_cart_id');
-        Session::forget('shopify_cart');
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Cart cleared'
-        ]);
-    }
-    
     public function cartCount()
     {
         $cart = Session::get('shopify_cart');
@@ -650,7 +624,7 @@ public function home()
         }
     }
     
-    
+   
     
     public function checkout()
     {
