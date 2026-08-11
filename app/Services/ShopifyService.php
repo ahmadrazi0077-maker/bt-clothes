@@ -420,130 +420,75 @@ public function getProductById($id)
     
   public function createCart($lineItems = [])
 {
-    $query = <<<'GRAPHQL'
-mutation CartCreate($input: CartInput!) {
-    cartCreate(input: $input) {
-        cart {
-            id
-            checkoutUrl
-            totalQuantity
-
-            lines(first: 100) {
-                edges {
-                    node {
-                        id
-                        quantity
-
-                        merchandise {
-                            ... on ProductVariant {
-                                id
-                                title
-
-                                price {
-                                    amount
-                                    currencyCode
-                                }
-
-                                product {
-                                    id
-                                    title
-                                    handle
-
-                                    featuredImage {
-                                        url
-                                        altText
-                                    }
-                                }
-                            }
-                        }
-                    }
+    $query = '
+        mutation CartCreate($input: CartInput!) {
+            cartCreate(input: $input) {
+                cart {
+                    id
+                    checkoutUrl
+                    totalQuantity
                 }
-            }
-
-            cost {
-                subtotalAmount {
-                    amount
-                    currencyCode
-                }
-
-                totalAmount {
-                    amount
-                    currencyCode
+                userErrors {
+                    field
+                    message
                 }
             }
         }
-
-        userErrors {
-            field
-            message
-        }
-    }
-}
-GRAPHQL;
-
+    ';
+    
     $variables = [
         'input' => [
             'lines' => $lineItems
         ]
     ];
-
+    
     $result = $this->graphqlQuery($query, $variables);
-
-    if (!$result) {
+    
+    // ✅ Check for errors
+    if (isset($result['cartCreate']['userErrors']) && count($result['cartCreate']['userErrors']) > 0) {
+        \Log::error('Cart creation errors:', $result['cartCreate']['userErrors']);
         return null;
     }
-
-    if (!empty($result['cartCreate']['userErrors'])) {
-        \Log::error('Shopify cartCreate errors', [
-            'errors' => $result['cartCreate']['userErrors']
-        ]);
-
-        return null;
+    
+    if ($result && isset($result['cartCreate']['cart'])) {
+        return $result['cartCreate']['cart'];
     }
-
-    return $result['cartCreate']['cart'] ?? null;
+    
+    return null;
 }
 
 public function getCart($cartId)
 {
-    $query = <<<'GRAPHQL'
-query GetCart($cartId: ID!) {
-    cart(id: $cartId) {
-        id
-        checkoutUrl
-        totalQuantity
-
-        lines(first: 100) {
-            edges {
-                node {
-                    id
-                    quantity
-
-                    merchandise {
-                        ... on ProductVariant {
+    $query = '
+        query GetCart($cartId: ID!) {
+            cart(id: $cartId) {
+                id
+                checkoutUrl
+                totalQuantity
+                lines(first: 20) {
+                    edges {
+                        node {
                             id
-                            title
-
-                            price {
-                                amount
-                                currencyCode
-                            }
-
-                            product {
-                                id
-                                title
-                                handle
-
-                                featuredImage {
-                                    url
-                                    altText
-                                }
-
-                                images(first: 1) {
-                                    edges {
-                                        node {
-                                            url
-                                            altText
+                            quantity
+                            merchandise {
+                                ... on ProductVariant {
+                                    id
+                                    title
+                                    price {
+                                        amount
+                                        currencyCode
+                                    }
+                                    product {
+                                        id
+                                        title
+                                        handle
+                                        images(first: 1) {
+                                            edges {
+                                                node {
+                                                    url
+                                                    altText
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -551,152 +496,69 @@ query GetCart($cartId: ID!) {
                         }
                     }
                 }
-            }
-        }
-
-        cost {
-            subtotalAmount {
-                amount
-                currencyCode
-            }
-
-            totalAmount {
-                amount
-                currencyCode
-            }
-        }
-    }
-}
-GRAPHQL;
-
-    $result = $this->graphqlQuery(
-        $query,
-        ['cartId' => $cartId]
-    );
-
-    if (!$result) {
-        return null;
-    }
-
-    return $result['cart'] ?? null;
-}
-
-
-public function addToCart($cartId, $lineItems)
-{
-    $query = <<<'GRAPHQL'
-mutation CartLinesAdd(
-    $cartId: ID!,
-    $lines: [CartLineInput!]!
-) {
-    cartLinesAdd(
-        cartId: $cartId,
-        lines: $lines
-    ) {
-        cart {
-            id
-            checkoutUrl
-            totalQuantity
-
-            lines(first: 100) {
-                edges {
-                    node {
-                        id
-                        quantity
-
-                        merchandise {
-                            ... on ProductVariant {
-                                id
-                                title
-
-                                price {
-                                    amount
-                                    currencyCode
-                                }
-
-                                product {
-                                    id
-                                    title
-                                    handle
-
-                                    featuredImage {
-                                        url
-                                        altText
-                                    }
-                                }
-                            }
-                        }
+                estimatedCost {
+                    subtotalAmount {
+                        amount
+                        currencyCode
+                    }
+                    totalAmount {
+                        amount
+                        currencyCode
                     }
                 }
             }
+        }
+    ';
+    
+    $result = $this->graphqlQuery($query, ['cartId' => $cartId]);
+    
+    if ($result && isset($result['cart'])) {
+        return $result['cart'];
+    }
+    
+    return null;
+}
 
-            cost {
-                subtotalAmount {
-                    amount
-                    currencyCode
+public function addToCart($cartId, $lineItems)
+{
+    $query = '
+        mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+            cartLinesAdd(cartId: $cartId, lines: $lines) {
+                cart {
+                    id
+                    totalQuantity
                 }
-
-                totalAmount {
-                    amount
-                    currencyCode
+                userErrors {
+                    field
+                    message
                 }
             }
         }
-
-        userErrors {
-            field
-            message
-        }
-
-        warnings {
-            code
-            message
-        }
-    }
-}
-GRAPHQL;
-
+    ';
+    
     $variables = [
         'cartId' => $cartId,
-        'lines' => $lineItems,
+        'lines' => $lineItems
     ];
-
+    
     $result = $this->graphqlQuery($query, $variables);
-
-    if (!$result) {
-        \Log::error('Shopify Cart API returned empty result');
-
+    
+    // ✅ Check for errors
+    if (isset($result['cartLinesAdd']['userErrors']) && count($result['cartLinesAdd']['userErrors']) > 0) {
+        \Log::error('Add to cart errors:', $result['cartLinesAdd']['userErrors']);
         return null;
     }
-
-    $payload = $result['cartLinesAdd'] ?? null;
-
-    if (!$payload) {
-        \Log::error('Shopify cartLinesAdd payload missing', [
-            'result' => $result
-        ]);
-
-        return null;
+    
+    if ($result && isset($result['cartLinesAdd']['cart'])) {
+        return $result['cartLinesAdd']['cart'];
     }
-
-    if (!empty($payload['userErrors'])) {
-
-        \Log::error('Shopify Cart Add Errors', [
-            'errors' => $payload['userErrors']
-        ]);
-
-        return null;
-    }
-
-    if (!empty($payload['warnings'])) {
-
-        \Log::warning('Shopify Cart Add Warnings', [
-            'warnings' => $payload['warnings']
-        ]);
-    }
-
-    return $payload['cart'] ?? null;
+    
+    return null;
 }
+
+
+
+
 
 
 

@@ -62,7 +62,13 @@ Route::get('/cart/count', [ShopifyController::class, 'cartCount'])
 
 
  
-
+Route::get('/debug-cart', function () {
+    return response()->json([
+        'cart_id' => Session::get('shopify_cart_id'),
+        'cart' => Session::get('shopify_cart'),
+        'all_session' => Session::all(),
+    ]);
+});
 
 // ============================================
 // API ROUTES
