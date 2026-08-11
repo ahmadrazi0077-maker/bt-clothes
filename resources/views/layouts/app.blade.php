@@ -70,15 +70,10 @@
         return;
     }
     
-    // ✅ Get CSRF token from meta tag
     const token = document.querySelector('meta[name="csrf-token"]');
     
-    if (!token) {
-        showToast('❌ CSRF token not found');
-        return;
-    }
-    
     console.log('🛒 Adding to cart:', variantId);
+    console.log('CSRF Token:', token ? token.content : 'NOT FOUND');
     
     const originalText = button.innerHTML;
     button.disabled = true;
@@ -89,7 +84,7 @@
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token.content,
+            'X-CSRF-TOKEN': token ? token.content : '',
             'Accept': 'application/json'
         },
         body: JSON.stringify({
@@ -97,10 +92,7 @@
             quantity: 1
         })
     })
-    .then(response => {
-        console.log('Response status:', response.status);
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         console.log('Response data:', data);
         if (data.success) {
