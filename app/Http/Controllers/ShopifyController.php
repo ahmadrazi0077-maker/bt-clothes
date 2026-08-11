@@ -416,13 +416,39 @@ public function home()
     }
     
    public function cart()
-{
-    try {
-        $cartId = Session::get('shopify_cart_id');
-        
-        \Log::info('Cart ID from session:', ['cartId' => $cartId]);
-        
-        if (!$cartId) {
+    {
+        try {
+            $cartId = Session::get('shopify_cart_id');
+            
+            // ✅ Use full namespace
+            \Illuminate\Support\Facades\Log::info('Cart ID:', ['cartId' => $cartId]);
+            
+            if (!$cartId) {
+                return view('cart.index', [
+                    'cart' => null,
+                    'cartItems' => [],
+                    'total' => 0,
+                    'subtotal' => 0,
+                    'tax' => 0,
+                    'itemCount' => 0
+                ]);
+            }
+            
+            $cart = $this->shopify->getCart($cartId);
+            
+            \Illuminate\Support\Facades\Log::info('Cart data:', ['cart' => $cart]);
+            
+            return view('cart.index', [
+                'cart' => $cart,
+                'cartItems' => $cart['lines']['edges'] ?? [],
+                'total' => $cart['estimatedCost']['totalAmount']['amount'] ?? 0,
+                'subtotal' => $cart['estimatedCost']['subtotalAmount']['amount'] ?? 0,
+                'tax' => $cart['estimatedCost']['totalTaxAmount']['amount'] ?? 0,
+                'itemCount' => $cart['totalQuantity'] ?? 0
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Cart error: ' . $e->getMessage());
             return view('cart.index', [
                 'cart' => null,
                 'cartItems' => [],
@@ -432,44 +458,7 @@ public function home()
                 'itemCount' => 0
             ]);
         }
-        
-        $cart = $this->shopify->getCart($cartId);
-        
-        \Log::info('Cart from Shopify:', ['cart' => $cart]);
-        
-        if (!$cart) {
-            Session::forget('shopify_cart_id');
-            return view('cart.index', [
-                'cart' => null,
-                'cartItems' => [],
-                'total' => 0,
-                'subtotal' => 0,
-                'tax' => 0,
-                'itemCount' => 0
-            ]);
-        }
-        
-        return view('cart.index', [
-            'cart' => $cart,
-            'cartItems' => $cart['lines']['edges'] ?? [],
-            'total' => $cart['estimatedCost']['totalAmount']['amount'] ?? 0,
-            'subtotal' => $cart['estimatedCost']['subtotalAmount']['amount'] ?? 0,
-            'tax' => $cart['estimatedCost']['totalTaxAmount']['amount'] ?? 0,
-            'itemCount' => $cart['totalQuantity'] ?? 0
-        ]);
-        
-    } catch (\Exception $e) {
-        \Log::error('Cart error: ' . $e->getMessage());
-        return view('cart.index', [
-            'cart' => null,
-            'cartItems' => [],
-            'total' => 0,
-            'subtotal' => 0,
-            'tax' => 0,
-            'itemCount' => 0
-        ]);
     }
-}
     
    public function addToCart(Request $request)
 {
