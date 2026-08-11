@@ -59,7 +59,18 @@ Route::get('/cart/count', [ShopifyController::class, 'cartCount'])
 // Wishlist
 
 
+Route::get('/debug-cart', function () {
+    $cartId = session('shopify_cart_id');
+    $cart = session('shopify_cart');
 
+    return response()->json([
+        'session_id' => session()->getId(),
+        'cart_id' => $cartId,
+        'session_cart' => $cart,
+        'lines' => $cart['lines']['edges'] ?? [],
+        'total_quantity' => $cart['totalQuantity'] ?? 0,
+    ]);
+});
 
 // ============================================
 // API ROUTES
