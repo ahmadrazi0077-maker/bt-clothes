@@ -131,4 +131,12 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+
+    'providers' => [
+    // ✅ Ensure these are present
+    Illuminate\View\ViewServiceProvider::class,
+    Illuminate\Session\SessionServiceProvider::class,
+    Illuminate\Routing\RoutingServiceProvider::class,
+],
+
 ];
