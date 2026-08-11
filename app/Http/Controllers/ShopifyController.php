@@ -418,10 +418,10 @@ public function home()
 {
     // ✅ STEP 1: Check if cart ID exists in session
     $cartId = Session::get('shopify_cart_id');
-    \Log::info('Step 1 - Cart ID from session:', ['cart_id' => $cartId]);
+    Log::info('Step 1 - Cart ID from session:', ['cart_id' => $cartId]);
     
     if (!$cartId) {
-        \Log::warning('Step 1 - No cart ID found in session');
+        Log::warning('Step 1 - No cart ID found in session');
         return view('cart.index', [
             'items' => [],
             'total' => 0,
@@ -432,10 +432,10 @@ public function home()
     
     // ✅ STEP 2: Get cart from Shopify
     $cart = $this->shopify->getCart($cartId);
-    \Log::info('Step 2 - Cart from Shopify:', ['cart' => $cart]);
+    Log::info('Step 2 - Cart from Shopify:', ['cart' => $cart]);
     
     if (!$cart) {
-        \Log::warning('Step 2 - Cart not found in Shopify');
+        Log::warning('Step 2 - Cart not found in Shopify');
         Session::forget('shopify_cart_id');
         return view('cart.index', [
             'items' => [],
@@ -447,7 +447,7 @@ public function home()
     
     // ✅ STEP 3: Extract items
     $items = $cart['lines']['edges'] ?? [];
-    \Log::info('Step 3 - Items count:', ['count' => count($items)]);
+    Log::info('Step 3 - Items count:', ['count' => count($items)]);
     
     // ✅ STEP 4: Calculate total
     $total = 0;
@@ -456,7 +456,7 @@ public function home()
         $qty = $item['node']['quantity'] ?? 1;
         $total += $price * $qty;
     }
-    \Log::info('Step 4 - Total:', ['total' => $total]);
+    Log::info('Step 4 - Total:', ['total' => $total]);
     
     // ✅ STEP 5: Save cart to session for future
     Session::put('shopify_cart', $cart);
