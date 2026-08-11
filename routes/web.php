@@ -117,11 +117,14 @@ Route::get('/product/{handle}', [ShopifyController::class, 'product'])->name('pr
 // ============================================
 // PAGES
 // ============================================
-Route::post('/test-cart', function (Request $request) {
-    return response()->json([
-        'success' => true,
-        'message' => 'Test route working!',
-        'data' => $request->all()
+Route::get('/test-cart', function () {
+    return view('cart.index', [
+        'cart' => null,
+        'cartItems' => [],
+        'total' => 0,
+        'subtotal' => 0,
+        'tax' => 0,
+        'itemCount' => 0
     ]);
 });
 Route::get('/pages/{page}', function ($page) {
