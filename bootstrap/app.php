@@ -12,21 +12,23 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // ✅ Web middleware
-        $middleware->web(append: [
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-        ]);
-        
-        // ✅ CSRF EXCEPTION - Add all cart routes
+        // ✅ CSRF Exception
         $middleware->validateCsrfTokens(except: [
+            'cart/*',
             'cart/add',
             'cart/update',
             'cart/remove',
-            'cart/clear',
-            'cart/*',
+            'newsletter/subscribe',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // ✅ Handle errors
+        $exceptions->renderable(function (Throwable $e, Request $request) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        });
     })->create();

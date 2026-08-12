@@ -4,50 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'BT Clothes')</title>
-    
-    <!-- ✅ Tailwind CSS CDN -->
+    <title>BT Clothes</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- ✅ Custom CSS - Direct inline -->
-    <style>
-        .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.08);
-        }
-        .product-card img {
-            transition: transform 0.5s ease;
-        }
-        .product-card:hover img {
-            transform: scale(1.05);
-        }
-        .add-to-cart-btn {
-            transition: all 0.3s ease;
-        }
-        .add-to-cart-btn:active {
-            transform: scale(0.95);
-        }
-        #toast.show {
-            transform: translateY(0) !important;
-            opacity: 1 !important;
-        }
-    </style>
-    
-    @stack('styles')
 </head>
 <body>
     <!-- Toast -->
     <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 opacity-0 transition-all duration-500 z-50 max-w-sm">
         <span id="toast-message"></span>
-    </div>
-    
-    <!-- Announcement Bar -->
-    <div style="background: #1a1a1a; color: white; padding: 10px 20px; text-align: center; position: relative; z-index: 999;">
-        <div style="max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: 15px; flex-wrap: wrap;">
-            <span style="font-size: 14px;">🚚 Free Shipping on orders over Rs. 2500 | Use code: <strong>WELCOME10</strong> for 10% off</span>
-            <a href="/collections/all" style="color: white; text-decoration: underline; font-weight: 600; font-size: 14px;">Shop Now →</a>
-            <button onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; position: absolute; right: 20px; top: 50%; transform: translateY(-50%);">✕</button>
-        </div>
     </div>
     
     @include('components.header')
@@ -57,324 +20,111 @@
     </main>
     
     @include('components.footer')
-    @include('components.quick-view')
-    @include('components.quick-add-modal')
     
-    <!-- ✅ All JavaScript -->
-  <!-- Toast Notification -->
-<div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 opacity-0 transition-all duration-500 z-50 max-w-sm">
-    <span id="toast-message"></span>
-</div>
-<script>
+    <!-- ✅ Load JS -->
+    <script>
     // ============================================
-// BT CLOTHES - CART SYSTEM
-// ============================================
-
-(function() {
-    'use strict';
-    
+    // ADD TO CART - WORKING
     // ============================================
-    // ADD TO CART
-    // ============================================
-    
     function addToCart(button) {
-    const variantId = button.dataset.variantId;
-    
-    if (!variantId) {
-        showToast('❌ Please select a variant');
-        return;
+        const variantId = button.dataset.variantId;
+        
+        if (!variantId) {
+            showToast('❌ Please select a variant');
+            return;
+        }
+        
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '⏳ Adding...';
+        button.classList.add('opacity-70');
+        
+        const token = document.querySelector('meta[name="csrf-token"]');
+        
+        fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token ? token.content : '',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                variant_id: variantId,
+                quantity: 1
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(text);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                button.innerHTML = '✅ Added!';
+                button.classList.add('bg-green-600');
+                button.classList.remove('bg-gray-900');
+                updateCartCount();
+                showToast('🛒 Product added to cart!');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.classList.remove('opacity-70', 'bg-green-600');
+                    button.classList.add('bg-gray-900');
+                }, 2000);
+            } else {
+                button.innerHTML = '❌ Failed';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.classList.remove('opacity-70');
+                }, 2000);
+                showToast('❌ ' + (data.message || 'Error adding to cart'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            button.innerHTML = originalText;
+            button.disabled = false;
+            button.classList.remove('opacity-70');
+            showToast('❌ Server error');
+        });
     }
     
-    const originalText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '⏳ Adding...';
-    button.classList.add('opacity-70');
-    
-    // ✅ Get CSRF token
-    const token = document.querySelector('meta[name="csrf-token"]');
-    
-    fetch('/cart/add', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': token ? token.content : '',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            variant_id: variantId,
-            quantity: 1
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            button.innerHTML = '✅ Added!';
-            button.classList.add('bg-green-600');
-            button.classList.remove('bg-gray-900');
-            updateCartCount();
-            showToast('🛒 Product added to cart!');
-            
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70', 'bg-green-600');
-                button.classList.add('bg-gray-900');
-            }, 2000);
-        } else {
-            button.innerHTML = '❌ Failed';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.classList.remove('opacity-70');
-            }, 2000);
-            showToast('❌ ' + (data.message || 'Error adding to cart'));
-        }
-    })
-    .catch(() => {
-        button.innerHTML = originalText;
-        button.disabled = false;
-        button.classList.remove('opacity-70');
-        showToast('❌ Error adding to cart');
-    });
-}
-    
-    // ============================================
-    // UPDATE CART COUNT
-    // ============================================
-    
-    window.updateCartCount = function() {
-        const token = document.querySelector('meta[name="csrf-token"]');
-        
-        fetch('/cart/count', {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': token ? token.content : ''
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            const countEl = document.querySelector('.cart-count');
-            if (countEl) {
-                countEl.textContent = data.count || 0;
-            }
-            
-            // ✅ Update cart item count on cart page
-            const itemCountEl = document.getElementById('cartItemCount');
-            if (itemCountEl) {
-                itemCountEl.textContent = data.count + ' items';
-            }
-        })
-        .catch(error => {
-            console.error('Update cart count error:', error);
-        });
-    };
-    
-    // ============================================
-    // UPDATE CART (Quantity)
-    // ============================================
-    
-    window.updateCart = function(lineId, quantity) {
-        const token = document.querySelector('meta[name="csrf-token"]');
-        
-        fetch('/cart/update', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': token ? token.content : '',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                line_id: lineId,
-                quantity: quantity
+    function updateCartCount() {
+        fetch('/cart/count')
+            .then(response => response.json())
+            .then(data => {
+                const el = document.querySelector('.cart-count');
+                if (el) {
+                    el.textContent = data.count || 0;
+                }
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // ✅ Reload page to show updated cart
-                window.location.reload();
-            } else {
-                showToast('❌ ' + (data.message || 'Error updating cart'));
-            }
-        })
-        .catch(error => {
-            console.error('Update cart error:', error);
-            showToast('❌ Error updating cart');
-        });
-    };
+            .catch(() => {});
+    }
     
-    // ============================================
-    // REMOVE FROM CART
-    // ============================================
-    
-    window.removeFromCart = function(lineId) {
-        if (!confirm('Remove this item from cart?')) {
-            return;
-        }
-        
-        const token = document.querySelector('meta[name="csrf-token"]');
-        
-        fetch('/cart/remove', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': token ? token.content : '',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                line_id: lineId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // ✅ Reload page to show updated cart
-                window.location.reload();
-            } else {
-                showToast('❌ ' + (data.message || 'Error removing item'));
-            }
-        })
-        .catch(error => {
-            console.error('Remove from cart error:', error);
-            showToast('❌ Error removing item');
-        });
-    };
-    
-    // ============================================
-    // CLEAR CART
-    // ============================================
-    
-    window.clearCart = function() {
-        if (!confirm('Clear all items from cart?')) {
-            return;
-        }
-        
-        const token = document.querySelector('meta[name="csrf-token"]');
-        
-        fetch('/cart/clear', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': token ? token.content : '',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                showToast('❌ ' + (data.message || 'Error clearing cart'));
-            }
-        })
-        .catch(error => {
-            console.error('Clear cart error:', error);
-            showToast('❌ Error clearing cart');
-        });
-    };
-    
-    // ============================================
-    // TOAST NOTIFICATION
-    // ============================================
-    
-    window.showToast = function(message) {
+    function showToast(message) {
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toast-message');
-        
         if (toast && toastMessage) {
             toastMessage.textContent = message;
             toast.classList.add('show');
-            
-            // Clear previous timeout
-            if (window.toastTimeout) {
-                clearTimeout(window.toastTimeout);
-            }
-            
-            // Auto hide after 3 seconds
-            window.toastTimeout = setTimeout(() => {
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
         }
-    };
-    
-    // ============================================
-    // QUANTITY CONTROLS (Cart Page)
-    // ============================================
-    
-    function initQuantityControls() {
-        document.querySelectorAll('.qty-decrease, .qty-increase').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const row = this.closest('[data-line-id]');
-                if (!row) return;
-                
-                const input = row.querySelector('.qty-input');
-                if (!input) return;
-                
-                const lineId = row.dataset.lineId;
-                let quantity = parseInt(input.value) || 1;
-                
-                if (this.classList.contains('qty-decrease')) {
-                    if (quantity > 1) quantity--;
-                } else {
-                    if (quantity < 10) quantity++;
-                }
-                
-                input.value = quantity;
-                updateCart(lineId, quantity);
-            });
-        });
-        
-        // ✅ Remove buttons
-        document.querySelectorAll('.remove-item').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const lineId = this.dataset.lineId;
-                if (lineId) {
-                    removeFromCart(lineId);
-                }
-            });
-        });
     }
     
-    // ============================================
-    // INITIALIZE
-    // ============================================
-    
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🛒 Cart system initialized');
-        
-        // ✅ Update cart count on page load
         updateCartCount();
-        
-        // ✅ Initialize quantity controls
-        initQuantityControls();
-        
-        // ✅ Initialize add to cart buttons
-        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
-            // Remove existing event listeners to avoid duplicates
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            
-            newBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                addToCart(this);
-            });
-        });
+        console.log('✅ JS loaded');
     });
-    
-})();
-</script>
-    
-    <script>
-        // ✅ Fallback - Ensure functions are available
-        window.addToCart = addToCart;
-        window.updateCartCount = updateCartCount;
-        window.showToast = showToast;
     </script>
     
     @stack('scripts')
 </body>
-</html> 
+</html>

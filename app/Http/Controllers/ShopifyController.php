@@ -398,65 +398,66 @@ public function home()
     // CART METHODS
     // ============================================
     
-     public function addToCart(Request $request)
+      public function addToCart(Request $request)
     {
-        $variantId = $request->variant_id;
-        $quantity = $request->quantity ?? 1;
-        
-        if (!$variantId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Variant ID required'
-            ], 400);
-        }
-        
-        // ✅ Get cart ID from cookie
-        $cartId = $request->cookie('shopify_cart_id');
-        
-        if (!$cartId) {
-            $cart = $this->shopify->createCart();
-            if ($cart) {
-                $cartId = $cart['id'];
-                // ✅ Set cookie (30 days)
-                Cookie::queue('shopify_cart_id', $cartId, 60 * 24 * 30);
+        try {
+            $variantId = $request->variant_id;
+            $quantity = $request->quantity ?? 1;
+            
+            if (!$variantId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Variant ID required'
+                ], 400);
             }
-        }
-        
-        if (!$cartId) {
+            
+            // Get cart ID from cookie
+            $cartId = $request->cookie('shopify_cart_id');
+            
+            if (!$cartId) {
+                $cart = $this->shopify->createCart();
+                if ($cart) {
+                    $cartId = $cart['id'];
+                    Cookie::queue('shopify_cart_id', $cartId, 60 * 24 * 30);
+                }
+            }
+            
+            if (!$cartId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to create cart'
+                ], 500);
+            }
+            
+            // Add to cart
+            $cart = $this->shopify->addToCart($cartId, [
+                ['quantity' => $quantity, 'merchandiseId' => $variantId]
+            ]);
+            
+            if ($cart) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Product added to cart!',
+                    'itemCount' => $cart['totalQuantity'] ?? 0
+                ]);
+            }
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Unable to create cart'
+                'message' => 'Unable to add to cart'
+            ], 500);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
             ], 500);
         }
-        
-        // ✅ Add to cart
-        $cart = $this->shopify->addToCart($cartId, [
-            ['quantity' => $quantity, 'merchandiseId' => $variantId]
-        ]);
-        
-        if ($cart) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Product added to cart!',
-                'itemCount' => $cart['totalQuantity'] ?? 0
-            ]);
-        }
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Unable to add to cart'
-        ], 500);
     }
-    
-    // ============================================
-    // CART PAGE
-    // ============================================
     
     public function cart(Request $request)
     {
-        // ✅ Get cart ID from cookie
         $cartId = $request->cookie('shopify_cart_id');
-        
         $cart = null;
         $items = [];
         $subtotal = 0;
@@ -479,14 +480,9 @@ public function home()
             'items' => $items,
             'subtotal' => $subtotal,
             'itemCount' => $itemCount,
-            'cart' => $cart,
-            'debug' => $cartId ? 'Cart ID: ' . $cartId : 'No cart ID'
+            'cart' => $cart
         ]);
     }
-    
-    // ============================================
-    // CART COUNT
-    // ============================================
     
     public function cartCount(Request $request)
     {
