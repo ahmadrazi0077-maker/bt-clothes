@@ -1,16 +1,23 @@
 <?php
 
+// ✅ Simple test first
+echo "<!-- public/index.php loaded -->";
+
 use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// ✅ Enable error reporting
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// ✅ Check vendor
+if (!file_exists(__DIR__.'/../vendor/autoload.php')) {
+    die('vendor/autoload.php not found');
+}
 
-// Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 
-// Bootstrap Laravel and handle the request...
+// ✅ Check bootstrap
+if (!file_exists(__DIR__.'/../bootstrap/app.php')) {
+    die('bootstrap/app.php not found');
+}
+
 $app = require_once __DIR__.'/../bootstrap/app.php';
 $app->handleRequest(Request::capture());
