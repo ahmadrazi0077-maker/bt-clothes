@@ -4,9 +4,6 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// ✅ NO echo/print statements here!
-// ❌ Remove: echo "<!-- public/index.php loaded -->";
-
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 
