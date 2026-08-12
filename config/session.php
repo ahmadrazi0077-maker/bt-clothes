@@ -3,7 +3,7 @@
 use Illuminate\Support\Str;
 
 return [
-    'driver' => env('SESSION_DRIVER', 'array'), // ✅ Change to 'array'
+    'driver' => env('SESSION_DRIVER', 'array'),
     'lifetime' => env('SESSION_LIFETIME', 120),
     'expire_on_close' => false,
     'encrypt' => false,
@@ -17,7 +17,7 @@ return [
         Str::slug(env('APP_NAME', 'laravel'), '_').'_session'
     ),
     'path' => '/',
-    'domain' => env('SESSION_DOMAIN', '.btclothes.com'),
+    'domain' => env('SESSION_DOMAIN'),
     'secure' => env('SESSION_SECURE_COOKIE'),
     'http_only' => true,
     'same_site' => 'lax',
