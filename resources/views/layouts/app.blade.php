@@ -77,79 +77,66 @@
     // ADD TO CART
     // ============================================
     
-    window.addToCart = function(button) {
-        const variantId = button.dataset.variantId;
-        
-        if (!variantId) {
-            showToast('❌ Please select a variant');
-            return;
+    function addToCart(button) {
+    const variantId = button.dataset.variantId;
+    
+    if (!variantId) {
+        showToast('❌ Please select a variant');
+        return;
+    }
+    
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '⏳ Adding...';
+    button.classList.add('opacity-70');
+    
+    // ✅ Get CSRF token
+    const token = document.querySelector('meta[name="csrf-token"]');
+    
+    fetch('/cart/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token ? token.content : '',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            variant_id: variantId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            button.innerHTML = '✅ Added!';
+            button.classList.add('bg-green-600');
+            button.classList.remove('bg-gray-900');
+            updateCartCount();
+            showToast('🛒 Product added to cart!');
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.classList.remove('opacity-70', 'bg-green-600');
+                button.classList.add('bg-gray-900');
+            }, 2000);
+        } else {
+            button.innerHTML = '❌ Failed';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.classList.remove('opacity-70');
+            }, 2000);
+            showToast('❌ ' + (data.message || 'Error adding to cart'));
         }
-        
-        const originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '⏳ Adding...';
-        button.classList.add('opacity-70');
-        
-        // ✅ Get CSRF token
-        const token = document.querySelector('meta[name="csrf-token"]');
-        
-        fetch('/cart/add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': token ? token.content : '',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                variant_id: variantId,
-                quantity: 1
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // ✅ Update button
-                button.innerHTML = '✅ Added!';
-                button.classList.add('bg-green-600');
-                button.classList.remove('bg-gray-900');
-                
-                // ✅ Update cart count
-                updateCartCount();
-                
-                // ✅ Show toast
-                showToast('🛒 Product added to cart!');
-                
-                // ✅ Reset button after 2 seconds
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.disabled = false;
-                    button.classList.remove('opacity-70', 'bg-green-600');
-                    button.classList.add('bg-gray-900');
-                }, 2000);
-                
-            } else {
-                button.innerHTML = '❌ Failed';
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.disabled = false;
-                    button.classList.remove('opacity-70');
-                }, 2000);
-                showToast('❌ ' + (data.message || 'Error adding to cart'));
-            }
-        })
-        .catch(error => {
-            console.error('Add to cart error:', error);
-            button.innerHTML = originalText;
-            button.disabled = false;
-            button.classList.remove('opacity-70');
-            showToast('❌ Error adding to cart');
-        });
-    };
+    })
+    .catch(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        button.classList.remove('opacity-70');
+        showToast('❌ Error adding to cart');
+    });
+}
     
     // ============================================
     // UPDATE CART COUNT

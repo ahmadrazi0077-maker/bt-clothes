@@ -12,9 +12,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // ✅ Web middleware
         $middleware->web(append: [
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        ]);
+        
+        // ✅ CSRF EXCEPTION - Add all cart routes
+        $middleware->validateCsrfTokens(except: [
+            'cart/add',
+            'cart/update',
+            'cart/remove',
+            'cart/clear',
+            'cart/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
